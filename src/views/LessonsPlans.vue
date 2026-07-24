@@ -141,6 +141,11 @@ function playNewsAlert() {
     newsAudio.play().catch((e) => console.warn(e));
   }, 5200);
 
+  setTimeout(() => {
+    newsAudio.currentTime = 0;
+    newsAudio.play().catch((e) => console.warn(e));
+  }, 10200);
+
   triggerVisualPulse();
 }
 
@@ -332,7 +337,7 @@ onMounted(() => {
     statusNow.value = new Date();
     checkLessonAlerts();
   }, 1000);
-  refetchTimer = setInterval(fetchGroups, 12000);
+  refetchTimer = setInterval(fetchGroups, 120000);
 });
 
 onUnmounted(() => {
@@ -575,71 +580,46 @@ const PRIORITY_DOT = {
 </script>
 
 <template>
-  <div
-    class="min-h-screen bg-gradient-to-r from-[#000000] to-[#130F40] px-4 py-6 sm:py-10"
-  >
-    <div
-      class="mx-auto flex max-w-[1800px] flex-col items-start gap-5 lg:flex-row lg:gap-6"
-    >
+  <div class="min-h-screen bg-gradient-to-r from-[#000000] to-[#130F40] px-4 py-6 sm:py-10">
+    <div class="mx-auto flex max-w-[1800px] flex-col items-start gap-5 lg:flex-row lg:gap-6">
       <!-- ══════════ NEWS SIDEBAR ══════════ -->
-      <aside
-        v-if="news.length"
-        class="order-1 w-full shrink-0 lg:sticky lg:top-10 lg:order-2 lg:w-72 2xl:w-80"
-      >
+      <aside v-if="news.length" class="order-1 w-full shrink-0 lg:sticky lg:top-10 lg:order-2 lg:w-72 2xl:w-80">
         <div
-          class="overflow-hidden rounded-2xl border border-slate-800 shadow-2xl shadow-black/50 animate-[fadeIn_0.4s_ease]"
-        >
-          <div
-            class="flex items-center gap-2 border-b border-slate-800/80 px-6 py-5"
-          >
-            <span class="text-amber-400 text-lg"><AppIcon name="megaphone" /></span>
+          class="overflow-hidden rounded-2xl border border-slate-800 shadow-2xl shadow-black/50 animate-[fadeIn_0.4s_ease]">
+          <div class="flex items-center gap-2 border-b border-slate-800/80 px-6 py-5">
+            <span class="text-amber-400 text-lg">
+              <AppIcon name="megaphone" />
+            </span>
             <p class="text-sm font-bold tracking-[0.18em] text-amber-400">
               E'LONLAR
             </p>
           </div>
 
           <div class="p-5">
-            <div
-              class="rounded-2xl border px-5 py-5 transition-opacity duration-300"
-              :class="PRIORITY_STYLE[news[currentNewsIndex].priority]"
-            >
+            <div class="rounded-2xl border px-5 py-5 transition-opacity duration-300"
+              :class="PRIORITY_STYLE[news[currentNewsIndex].priority]">
               <div class="mb-2.5 flex items-start gap-2.5">
                 <span class="relative mt-1.5 flex h-2.5 w-2.5 shrink-0">
-                  <span
-                    class="absolute inline-flex h-full w-full animate-ping rounded-full opacity-60"
-                    :class="PRIORITY_DOT[news[currentNewsIndex].priority]"
-                  ></span>
-                  <span
-                    class="relative inline-flex h-2.5 w-2.5 rounded-full"
-                    :class="PRIORITY_DOT[news[currentNewsIndex].priority]"
-                  ></span>
+                  <span class="absolute inline-flex h-full w-full animate-ping rounded-full opacity-60"
+                    :class="PRIORITY_DOT[news[currentNewsIndex].priority]"></span>
+                  <span class="relative inline-flex h-2.5 w-2.5 rounded-full"
+                    :class="PRIORITY_DOT[news[currentNewsIndex].priority]"></span>
                 </span>
                 <p class="text-xl font-bold leading-snug">
                   {{ news[currentNewsIndex].title }}
                 </p>
               </div>
-              <p
-                class="whitespace-pre-line text-base leading-relaxed opacity-90"
-              >
+              <p class="whitespace-pre-line text-base leading-relaxed opacity-90">
                 {{ news[currentNewsIndex].content }}
               </p>
             </div>
 
             <!-- Rotatsiya indikatorlari -->
-            <div
-              v-if="news.length > 1"
-              class="mt-3 flex items-center justify-center gap-1.5"
-            >
-              <span
-                v-for="(n, idx) in news"
-                :key="n.id"
-                class="h-1.5 rounded-full transition-all"
-                :class="
-                  idx === currentNewsIndex
-                    ? 'w-4 bg-amber-400'
-                    : 'w-1.5 bg-slate-700'
-                "
-              ></span>
+            <div v-if="news.length > 1" class="mt-3 flex items-center justify-center gap-1.5">
+              <span v-for="(n, idx) in news" :key="n.id" class="h-1.5 rounded-full transition-all" :class="idx === currentNewsIndex
+                  ? 'w-4 bg-amber-400'
+                  : 'w-1.5 bg-slate-700'
+                "></span>
             </div>
           </div>
         </div>
@@ -648,27 +628,19 @@ const PRIORITY_DOT = {
       <!-- ══════════ SCHEDULE BOARD ══════════ -->
       <div
         class="order-2 w-full  min-w-0 border overflow-hidden rounded-2xl  shadow-2xl shadow-black/50 transition-all duration-500 animate-[fadeIn_0.4s_ease] lg:order-1 lg:flex-1"
-        :class="
-          visualAlert
+        :class="visualAlert
             ? 'border-amber-400 shadow-[0_0_40px_rgba(251,191,36,0.35)] animate-[boardFlash_0.6s_ease-in-out_3]'
             : 'border-slate-800/80'
-        "
-      >
+          ">
         <!-- Header -->
-        <div
-          class="flex items-center justify-between gap-3 border-b bg-white/10 px-5 py-5 sm:px-7"
-        >
+        <div class="flex items-center justify-between gap-3 border-b bg-white/10 px-5 py-5 sm:px-7">
           <div class="flex min-w-0 items-center gap-3">
-            <RouterLink
-              to="/groups"
-              class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-800 text-white transition hover:border-amber-400/60 hover:text-amber-400"
-            >
+            <RouterLink to="/groups"
+              class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-800 text-white transition hover:border-amber-400/60 hover:text-amber-400">
               <AppIcon name="chevron-left" class="w-4 h-4" />
             </RouterLink>
             <div class="min-w-0">
-              <p
-                class="text-[10.5px] font-bold tracking-[0.16em] text-amber-400"
-              >
+              <p class="text-[10.5px] font-bold tracking-[0.16em] text-amber-400">
                 DARSLAR TAXTASI
               </p>
               <h1 class="truncate text-xl font-bold text-white">
@@ -679,17 +651,10 @@ const PRIORITY_DOT = {
 
           <div class="flex shrink-0 items-center gap-4">
             <!-- Ovozni yoqish/o'chirish tugmasi -->
-            <button
-              type="button"
-              @click="toggleSound"
+            <button type="button" @click="toggleSound"
               class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-800 text-slate-400 transition hover:border-amber-400/60 hover:text-amber-400"
-              :title="soundEnabled ? 'Ovozni o\'chirish' : 'Ovozni yoqish'"
-            >
-              <AppIcon
-                name="volume-on"
-                class="w-4 h-4"
-                v-if="soundEnabled"
-              />
+              :title="soundEnabled ? 'Ovozni o\'chirish' : 'Ovozni yoqish'">
+              <AppIcon name="volume-on" class="w-4 h-4" v-if="soundEnabled" />
               <AppIcon name="volume-off" class="w-4 h-4" v-else />
             </button>
 
@@ -698,8 +663,7 @@ const PRIORITY_DOT = {
                 {{ todayLabel }} · {{ todayDate }}
               </p>
               <p
-                class="font-['Space_Mono',monospace] text-xl font-bold tabular-nums text-amber-400 drop-shadow-[0_0_18px_rgba(251,191,36,0.35)]"
-              >
+                class="font-['Space_Mono',monospace] text-xl font-bold tabular-nums text-amber-400 drop-shadow-[0_0_18px_rgba(251,191,36,0.35)]">
                 {{ formatClock(clockNow) }}
               </p>
             </div>
@@ -707,10 +671,8 @@ const PRIORITY_DOT = {
         </div>
 
         <!-- Column labels (desktop) -->
-        <div
-          v-if="!loading && todaysGroups.length"
-          class="hidden grid-cols-[84px_1.2fr_84px_2.3fr_1.1fr_60px_124px] gap-2.5 border-b border-slate-800/60  px-5 py-4 text-xs tracking-[0.1em] text-slate-50 sm:grid sm:px-7"
-        >
+        <div v-if="!loading && todaysGroups.length"
+          class="hidden grid-cols-[84px_1.2fr_84px_2.3fr_1.1fr_60px_124px] gap-2.5 border-b border-slate-800/60  px-5 py-4 text-xs tracking-[0.1em] text-slate-50 sm:grid sm:px-7">
           <span>VAQT</span>
           <span>GURUH</span>
           <span>XONA</span>
@@ -721,62 +683,44 @@ const PRIORITY_DOT = {
         </div>
 
         <!-- Loading -->
-        <div
-          v-if="loading"
-          class="px-6 py-16 text-center text-sm text-slate-500"
-        >
-          <div
-            class="mx-auto mb-3 h-6 w-6 animate-spin rounded-full border-2 border-slate-700 border-t-amber-400"
-          ></div>
+        <div v-if="loading" class="px-6 py-16 text-center text-sm text-slate-500">
+          <div class="mx-auto mb-3 h-6 w-6 animate-spin rounded-full border-2 border-slate-700 border-t-amber-400">
+          </div>
           Yuklanmoqda...
         </div>
 
         <!-- Error -->
-        <div
-          v-else-if="errorMsg"
-          class="px-6 py-16 text-center text-sm text-orange-400"
-        >
+        <div v-else-if="errorMsg" class="px-6 py-16 text-center text-sm text-orange-400">
           {{ errorMsg }}
         </div>
 
         <!-- Sunday / no schedule -->
-        <div
-          v-else-if="!todaySchedule"
-          class="px-6 py-16 text-center text-sm text-slate-500"
-        >
-          <p class="mb-2 text-3xl"><AppIcon name="coffee" /></p>
+        <div v-else-if="!todaySchedule" class="px-6 py-16 text-center text-sm text-slate-500">
+          <p class="mb-2 text-3xl">
+            <AppIcon name="coffee" />
+          </p>
           <p>Bugun dars yo'q — dam olish kuni</p>
         </div>
 
         <!-- Empty -->
-        <div
-          v-else-if="todaysGroups.length === 0"
-          class="px-6 py-16 text-center text-sm text-slate-500"
-        >
-          <p class="mb-2 text-3xl"><AppIcon name="groups" /></p>
+        <div v-else-if="todaysGroups.length === 0" class="px-6 py-16 text-center text-sm text-slate-500">
+          <p class="mb-2 text-3xl">
+            <AppIcon name="groups" />
+          </p>
           <p>Bugunga rejalashtirilgan guruh topilmadi</p>
         </div>
 
         <!-- Rows -->
         <div v-else class="divide-y divide-slate-800/60">
-          <div
-            v-for="(g, i) in todaysGroups"
-            :key="g.id"
+          <div v-for="(g, i) in todaysGroups" :key="g.id"
             class="animate-[rowIn_0.3s_ease_backwards] px-5 py-5 transition-opacity sm:px-7"
             :class="rowStatus(g) === 'past' ? 'opacity-40' : 'opacity-100'"
-            :style="{ animationDelay: `${Math.min(i * 40, 400)}ms` }"
-          >
+            :style="{ animationDelay: `${Math.min(i * 40, 400)}ms` }">
             <!-- Desktop row -->
-            <div
-              class="hidden grid-cols-[84px_1.2fr_84px_2.3fr_1.1fr_60px_124px] items-center gap-2.5 sm:grid"
-            >
-              <span
-                class="font-['Space_Mono',monospace] text-xl font-bold tabular-nums text-slate-100"
-                :class="
-                  rowStatus(g) === 'next' &&
-                  'text-amber-400 drop-shadow-[0_0_12px_rgba(251,191,36,0.4)]'
-                "
-              >
+            <div class="hidden grid-cols-[84px_1.2fr_84px_2.3fr_1.1fr_60px_124px] items-center gap-2.5 sm:grid">
+              <span class="font-['Space_Mono',monospace] text-xl font-bold tabular-nums text-slate-100" :class="rowStatus(g) === 'next' &&
+                'text-amber-400 drop-shadow-[0_0_12px_rgba(251,191,36,0.4)]'
+                ">
                 {{ formatTime(g.lesson_time) }}
               </span>
 
@@ -784,19 +728,13 @@ const PRIORITY_DOT = {
                 {{ g.name }}
               </span>
 
-              <span
-                class="font-['Space_Mono',monospace] text-base text-slate-300"
-              >
+              <span class="font-['Space_Mono',monospace] text-base text-slate-300">
                 {{ g.room || "—" }}
               </span>
 
-              <span
-                class="flex min-w-0 items-center gap-2 text-base text-slate-300"
-              >
-                <span
-                  v-if="g.teacher"
-                  class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-800 text-[11px] font-bold text-amber-400"
-                >
+              <span class="flex min-w-0 items-center gap-2 text-base text-slate-300">
+                <span v-if="g.teacher"
+                  class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-800 text-[11px] font-bold text-amber-400">
                   {{ initials(g.teacher.name) }}
                 </span>
                 <span class="truncate">{{
@@ -808,27 +746,17 @@ const PRIORITY_DOT = {
                 {{ SCHEDULE_LABEL[g.schedule] }}
               </span>
 
-              <span
-                class="font-['Space_Mono',monospace] text-base text-slate-300"
-              >
+              <span class="font-['Space_Mono',monospace] text-base text-slate-300">
                 {{ g.students?.length || 0 }}
               </span>
 
               <span>
                 <span
                   class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-bold tracking-[0.06em]"
-                  :class="STATUS_CLASS[rowStatus(g)]"
-                >
-                  <span
-                    v-if="rowStatus(g) === 'next'"
-                    class="relative flex h-1.5 w-1.5"
-                  >
-                    <span
-                      class="absolute inline-flex h-full w-full animate-ping rounded-full bg-slate-950/60"
-                    ></span>
-                    <span
-                      class="relative inline-flex h-1.5 w-1.5 rounded-full bg-slate-950"
-                    ></span>
+                  :class="STATUS_CLASS[rowStatus(g)]">
+                  <span v-if="rowStatus(g) === 'next'" class="relative flex h-1.5 w-1.5">
+                    <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-slate-950/60"></span>
+                    <span class="relative inline-flex h-1.5 w-1.5 rounded-full bg-slate-950"></span>
                   </span>
                   {{ statusText(g) }}
                 </span>
@@ -837,10 +765,8 @@ const PRIORITY_DOT = {
 
             <!-- Mobile card -->
             <div class="flex items-center gap-3 sm:hidden">
-              <span
-                class="font-['Space_Mono',monospace] text-lg font-bold tabular-nums text-slate-100"
-                :class="rowStatus(g) === 'next' && 'text-amber-400'"
-              >
+              <span class="font-['Space_Mono',monospace] text-lg font-bold tabular-nums text-slate-100"
+                :class="rowStatus(g) === 'next' && 'text-amber-400'">
                 {{ formatTime(g.lesson_time) }}
               </span>
               <div class="min-w-0 flex-1">
@@ -853,10 +779,8 @@ const PRIORITY_DOT = {
                   {{ g.students?.length || 0 }} ta
                 </p>
               </div>
-              <span
-                class="shrink-0 rounded-full px-2 py-1 text-[10px] font-bold tracking-[0.05em]"
-                :class="STATUS_CLASS[rowStatus(g)]"
-              >
+              <span class="shrink-0 rounded-full px-2 py-1 text-[10px] font-bold tracking-[0.05em]"
+                :class="STATUS_CLASS[rowStatus(g)]">
                 {{ statusText(g) }}
               </span>
             </div>
@@ -868,32 +792,21 @@ const PRIORITY_DOT = {
     <!-- ══════════ POP-UP BILDIRISHNOMA (dars / e'lon) ══════════ -->
     <Teleport to="body">
       <Transition name="popup">
-        <div
-          v-if="activePopup"
-          class="popup-overlay"
-          @click.self="closePopup"
-        >
-          <div
-            class="popup-card"
-            :class="
-              activePopup.kind === 'lesson'
-                ? 'popup-lesson'
-                : `popup-news popup-${activePopup.priority}`
-            "
-          >
-            <button
-              type="button"
-              class="popup-close"
-              @click="closePopup"
-              aria-label="Yopish"
-            >
+        <div v-if="activePopup" class="popup-overlay" @click.self="closePopup">
+          <div class="popup-card" :class="activePopup.kind === 'lesson'
+              ? 'popup-lesson'
+              : `popup-news popup-${activePopup.priority}`
+            ">
+            <button type="button" class="popup-close" @click="closePopup" aria-label="Yopish">
               <AppIcon name="x" />
             </button>
 
             <!-- DARS BOSHLANDI -->
             <template v-if="activePopup.kind === 'lesson'">
               <div class="popup-badge ">
-                <span class="popup-badge-icon"><AppIcon name="bell" /></span>
+                <span class="popup-badge-icon">
+                  <AppIcon name="bell" />
+                </span>
                 <span>DARS BOSHLANDI</span>
               </div>
               <h2 class="popup-title">{{ activePopup.title }}</h2>
@@ -913,18 +826,16 @@ const PRIORITY_DOT = {
               </div>
               <p v-if="activePopup.teacher" class="popup-sub">
                 <AppIcon name="teacher" /> {{ activePopup.teacher }}
-                <span v-if="activePopup.students"
-                  >· {{ activePopup.students }} o'quvchi</span
-                >
+                <span v-if="activePopup.students">· {{ activePopup.students }} o'quvchi</span>
               </p>
             </template>
 
             <!-- YANGI E'LON -->
             <template v-else>
               <div class="popup-badge">
-                <span class="popup-badge-icon"
-                  ><AppIcon name="megaphone"
-                /></span>
+                <span class="popup-badge-icon">
+                  <AppIcon name="megaphone" />
+                </span>
                 <span>YANGI E'LON</span>
               </div>
               <h2 class="popup-title">{{ activePopup.title }}</h2>
@@ -933,11 +844,8 @@ const PRIORITY_DOT = {
 
             <!-- Avtomatik yopilish indikatori -->
             <div class="popup-progress">
-              <span
-                :key="activePopup.id"
-                class="popup-progress-bar"
-                :style="{ animationDuration: POPUP_MS + 'ms' }"
-              ></span>
+              <span :key="activePopup.id" class="popup-progress-bar"
+                :style="{ animationDuration: POPUP_MS + 'ms' }"></span>
             </div>
           </div>
         </div>
@@ -954,6 +862,7 @@ const PRIORITY_DOT = {
     opacity: 0;
     transform: translateY(6px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -965,6 +874,7 @@ const PRIORITY_DOT = {
     opacity: 0;
     transform: translateY(-4px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -972,10 +882,12 @@ const PRIORITY_DOT = {
 }
 
 @keyframes boardFlash {
+
   0%,
   100% {
     box-shadow: 0 0 0 rgba(251, 191, 36, 0);
   }
+
   50% {
     box-shadow: 0 0 55px rgba(251, 191, 36, 0.55);
   }
@@ -1017,15 +929,18 @@ const PRIORITY_DOT = {
     0 24px 70px -12px rgba(0, 0, 0, 0.75),
     0 0 60px -8px rgba(251, 191, 36, 0.35);
 }
+
 .popup-news.popup-normal {
   border-color: rgba(148, 163, 184, 0.35);
 }
+
 .popup-news.popup-important {
   border-color: rgba(251, 191, 36, 0.5);
   box-shadow:
     0 24px 70px -12px rgba(0, 0, 0, 0.75),
     0 0 60px -8px rgba(251, 191, 36, 0.28);
 }
+
 .popup-news.popup-urgent {
   border-color: rgba(248, 113, 113, 0.55);
   box-shadow:
@@ -1049,6 +964,7 @@ const PRIORITY_DOT = {
     background 0.2s,
     color 0.2s;
 }
+
 .popup-close:hover {
   background: rgba(148, 163, 184, 0.12);
   color: #e2e8f0;
@@ -1064,19 +980,23 @@ const PRIORITY_DOT = {
   font-weight: 700;
   letter-spacing: 0.12em;
 }
+
 .popup-lesson .popup-badge,
 .popup-news.popup-important .popup-badge {
   background: rgba(251, 191, 36, 0.15);
   color: #fbbf24;
 }
+
 .popup-news.popup-normal .popup-badge {
   background: rgba(148, 163, 184, 0.15);
   color: #cbd5e1;
 }
+
 .popup-news.popup-urgent .popup-badge {
   background: rgba(248, 113, 113, 0.16);
   color: #fca5a5;
 }
+
 .popup-badge-icon {
   display: inline-flex;
   font-size: 0.95rem;
@@ -1098,6 +1018,7 @@ const PRIORITY_DOT = {
   gap: 0.6rem;
   margin-top: 1.15rem;
 }
+
 .popup-chip {
   display: inline-flex;
   align-items: center;
@@ -1110,6 +1031,7 @@ const PRIORITY_DOT = {
   font-weight: 600;
   color: #e2e8f0;
 }
+
 .popup-chip .app-icon {
   color: #fbbf24;
   font-size: 1.05rem;
@@ -1142,6 +1064,7 @@ const PRIORITY_DOT = {
   height: 4px;
   background: rgba(148, 163, 184, 0.12);
 }
+
 .popup-progress-bar {
   display: block;
   height: 100%;
@@ -1150,9 +1073,11 @@ const PRIORITY_DOT = {
   background: #fbbf24;
   animation: popupCountdown linear forwards;
 }
+
 .popup-news.popup-urgent .popup-progress-bar {
   background: #f87171;
 }
+
 .popup-news.popup-normal .popup-progress-bar {
   background: #94a3b8;
 }
@@ -1161,31 +1086,38 @@ const PRIORITY_DOT = {
   from {
     transform: scaleX(1);
   }
+
   to {
     transform: scaleX(0);
   }
 }
+
 @keyframes popupPop {
   from {
     opacity: 0;
     transform: translateY(14px) scale(0.94);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
 }
+
 @keyframes popupRing {
+
   0%,
   70%,
   100% {
     transform: rotate(0);
   }
+
   10%,
   30%,
   50% {
     transform: rotate(-12deg);
   }
+
   20%,
   40%,
   60% {
@@ -1198,6 +1130,7 @@ const PRIORITY_DOT = {
 .popup-leave-active {
   transition: opacity 0.3s ease;
 }
+
 .popup-enter-from,
 .popup-leave-to {
   opacity: 0;
