@@ -13,3 +13,11 @@ app.use(router)
 app.use(createPinia())
 
 app.mount('#app')
+
+// PWA — "ilovani o'rnatish" (asosiy ekranga qo'shish) imkoniyati uchun
+// service worker ro'yxatga olinadi. Keshsiz, faqat installability uchun.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {})
+  })
+}

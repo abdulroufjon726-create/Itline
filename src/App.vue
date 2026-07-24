@@ -1,5 +1,6 @@
 <script setup>
 import Loading from './components/Loading.vue'
+import PwaInstall from './components/PwaInstall.vue'
 </script>
 
 <template>
@@ -15,6 +16,7 @@ import Loading from './components/Loading.vue'
       </template>
     </Suspense>
     <Loading />
+    <PwaInstall />
   </div>
   
 </template>
