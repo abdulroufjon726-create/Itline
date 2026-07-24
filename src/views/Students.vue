@@ -1,7 +1,7 @@
 <script setup>
 import Leaderboard from "@/components/Leaderboard.vue";
 import Magazine from "./Magazine.vue";
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import { useRouter } from "vue-router";
 import LessonsPlans from "./LessonsPlans.vue";
 import AppIcon from "@/components/AppIcon.vue";
@@ -61,14 +61,59 @@ const actionFeedback = ref({});
 const loadingStudents = ref(true);
 const loadingPayments = ref(true);
 
+// ─── Davomat (o'quvchi o'zining) ───
+const attMonth = ref(new Date().toISOString().slice(0, 7));
+const attendance = ref([]);
+const loadingAtt = ref(false);
+
+// ─── Leaderboard ko'lami: 'group' yoki 'center' ───
+const leaderScope = ref("group");
+
+async function fetchAttendance() {
+  if (user.is_admin || !user.id) return;
+  loadingAtt.value = true;
+  try {
+    const res = await fetch(
+      `${API}/student-attendance/${user.id}/?month=${attMonth.value}`,
+    );
+    attendance.value = res.ok ? await res.json() : [];
+  } catch (e) {
+    attendance.value = [];
+  } finally {
+    loadingAtt.value = false;
+  }
+}
+watch(attMonth, fetchAttendance);
+
+const ATT_LABEL = {
+  present: "Keldi",
+  late: "Kech keldi",
+  absent: "Kelmadi",
+};
+const ATT_STYLE = {
+  present: "bg-emerald-50 text-emerald-700",
+  late: "bg-amber-50 text-amber-700",
+  absent: "bg-rose-50 text-rose-600",
+};
+
+const attStats = computed(() => {
+  const total = attendance.value.length;
+  const came = attendance.value.filter(
+    (a) => a.status === "present" || a.status === "late",
+  ).length;
+  return { total, came, missed: total - came };
+});
+
 // ─── Fetch ────────────────────────────────────────────────────
 async function fetchStudents() {
   loadingStudents.value = true;
   try {
     const res = await fetch(`${API}/students/?teacher_id=${user.teacher_id}`);
-    students.value = await res.json();
+    const d = await res.json();
+    students.value = Array.isArray(d) ? d : [];
   } catch (e) {
     console.error(e);
+    students.value = [];
   } finally {
     loadingStudents.value = false;
   }
@@ -132,6 +177,7 @@ onMounted(async () => {
     }));
   }
   fetchBonusStatuses();
+  fetchAttendance();
 });
 
 // ─── Coin actions ─────────────────────────────────────────────
@@ -208,13 +254,38 @@ async function giveManualBonus(studentId) {
 }
 
 // ─── Computed ─────────────────────────────────────────────────
+
+// O'quvchining o'z guruhidagi a'zolar id'lari
+const myGroupMemberIds = computed(() => {
+  const set = new Set();
+  (myGroup.value?.students || []).forEach((s) => set.add(s.id ?? s));
+  return set;
+});
+
+// O'z guruhi a'zolari (coin/etap bilan) — students ro'yxatidan olinadi
+const myGroupStudents = computed(() =>
+  students.value.filter((s) => myGroupMemberIds.value.has(s.id)),
+);
+
 const filteredStudents = computed(() => {
+  // Oddiy o'quvchi — faqat o'z guruhi a'zolarini ko'radi
+  if (!user.is_admin) {
+    return myGroup.value ? myGroupStudents.value : [];
+  }
+  // Admin/ustoz — guruh filtri bo'yicha
   if (!selectedGroupId.value) return students.value;
   const group = groups.value.find((g) => g.id === selectedGroupId.value);
   if (!group) return students.value;
   const ids = new Set(group.students?.map((s) => s.id ?? s) || []);
   return students.value.filter((s) => ids.has(s.id));
 });
+
+// Guruh reytingi — o'z guruhi a'zolari coin bo'yicha tartiblangan
+const groupLeaderboard = computed(() =>
+  [...myGroupStudents.value].sort(
+    (a, b) => (b.coin_balance || 0) - (a.coin_balance || 0),
+  ),
+);
 
 function getStudentGroup(studentId) {
   const student = students.value.find((s) => s.id === studentId);
@@ -307,6 +378,14 @@ const stageStyle = (stage) => {
       </button>
 
       <template v-if="!user.is_admin">
+        <button @click="activeTab = 'attendance'" :class="[
+          'shrink-0 px-3.5 sm:px-4 py-2 rounded-full border text-xs sm:text-sm transition',
+          activeTab === 'attendance'
+            ? 'bg-black text-white border-black'
+            : 'border-gray-200 text-gray-600 hover:bg-gray-50',
+        ]">
+          <AppIcon name="attendance" /> Davomat
+        </button>
         <button @click="activeTab = 'payments'" :class="[
           'shrink-0 px-3.5 sm:px-4 py-2 rounded-full border text-xs sm:text-sm transition',
           activeTab === 'payments'
@@ -485,6 +564,53 @@ const stageStyle = (stage) => {
     </div>
 
     <!-- ═══════════════════════════════════════
+         DAVOMAT TAB — o'quvchi o'z davomati (oy bo'yicha)
+    ═══════════════════════════════════════ -->
+    <div v-if="activeTab === 'attendance'">
+      <div class="flex flex-wrap items-center gap-3 mb-4">
+        <input type="month" v-model="attMonth"
+          class="border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-gray-400" />
+        <div class="flex items-center gap-2 text-xs">
+          <span class="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-medium">
+            Keldi: {{ attStats.came }}
+          </span>
+          <span class="px-2.5 py-1 rounded-full bg-rose-50 text-rose-600 font-medium">
+            Kelmadi: {{ attStats.missed }}
+          </span>
+          <span class="px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 font-medium">
+            Jami: {{ attStats.total }}
+          </span>
+        </div>
+      </div>
+
+      <div v-if="loadingAtt" class="text-center py-10 text-gray-400 text-sm">
+        Yuklanmoqda...
+      </div>
+      <div v-else-if="!attendance.length" class="text-center py-10 text-gray-400 text-sm">
+        Bu oyda davomat yozuvi yo'q
+      </div>
+      <div v-else class="space-y-2">
+        <div v-for="a in attendance" :key="a.id"
+          class="bg-white border border-gray-100 rounded-2xl px-4 py-3 shadow-sm flex items-center gap-3">
+          <div class="w-11 h-11 rounded-xl bg-gray-50 flex flex-col items-center justify-center shrink-0">
+            <span class="text-sm font-bold leading-none text-gray-700">{{ a.lesson_date?.slice(8, 10) }}</span>
+            <span class="text-[9px] uppercase text-gray-400">
+              {{ MONTHS[+a.lesson_date?.slice(5, 7) - 1]?.slice(0, 3) }}
+            </span>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-medium truncate">{{ a.lesson_title || "Dars" }}</p>
+            <p class="text-xs text-gray-400">{{ a.lesson_date }}</p>
+          </div>
+          <span class="text-xs px-2.5 py-1 rounded-full font-medium whitespace-nowrap"
+            :class="ATT_STYLE[a.status] || 'bg-gray-100 text-gray-500'">
+            {{ ATT_LABEL[a.status] || a.status }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════
          PAYMENTS TAB
     ═══════════════════════════════════════ -->
     <div v-if="activeTab === 'payments'">
@@ -529,7 +655,53 @@ const stageStyle = (stage) => {
     </div>
 
     <div class="mt-4" v-if="activeTab === 'leader'">
-      <Leaderboard />
+      <!-- Reyting ko'lami: guruh / o'quv markaz -->
+      <div class="flex gap-1.5 mb-4">
+        <button @click="leaderScope = 'group'" :class="[
+          'flex-1 sm:flex-none px-4 py-2 rounded-full border text-xs sm:text-sm transition',
+          leaderScope === 'group'
+            ? 'bg-black text-white border-black'
+            : 'border-gray-200 text-gray-600 hover:bg-gray-50',
+        ]">
+          <AppIcon name="groups" /> Mening guruhim
+        </button>
+        <button @click="leaderScope = 'center'" :class="[
+          'flex-1 sm:flex-none px-4 py-2 rounded-full border text-xs sm:text-sm transition',
+          leaderScope === 'center'
+            ? 'bg-black text-white border-black'
+            : 'border-gray-200 text-gray-600 hover:bg-gray-50',
+        ]">
+          <AppIcon name="trophy" /> O'quv markaz
+        </button>
+      </div>
+
+      <!-- Guruh reytingi -->
+      <template v-if="leaderScope === 'group'">
+        <div v-if="!myGroup" class="text-center py-10 text-gray-400 text-sm">
+          Siz guruhga biriktirilmagansiz
+        </div>
+        <ul v-else-if="groupLeaderboard.length" class="space-y-2">
+          <li v-for="(s, i) in groupLeaderboard" :key="s.id"
+            class="flex items-center gap-3 bg-white border border-gray-100 rounded-2xl px-4 py-3 shadow-sm"
+            :class="s.id === user.id ? 'ring-2 ring-indigo-200' : ''">
+            <span class="w-7 text-center font-bold shrink-0"
+              :class="i < 3 ? 'text-amber-500' : 'text-gray-400'">{{ i + 1 }}</span>
+            <span class="flex-1 min-w-0 truncate text-sm font-medium">
+              {{ s.name }} {{ s.surname }}
+              <span v-if="s.id === user.id" class="text-xs text-indigo-500">(siz)</span>
+            </span>
+            <span class="text-sm font-bold text-yellow-600 whitespace-nowrap">
+              <AppIcon name="coin" /> {{ s.coin_balance || 0 }}
+            </span>
+          </li>
+        </ul>
+        <div v-else class="text-center py-10 text-gray-400 text-sm">
+          Guruhda o'quvchi yo'q
+        </div>
+      </template>
+
+      <!-- O'quv markaz reytingi -->
+      <Leaderboard v-else />
     </div>
     <div class="mt-4" v-if="activeTab === 'market'">
       <Magazine />
