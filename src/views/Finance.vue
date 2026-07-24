@@ -18,17 +18,17 @@
       </div>
       <div class="flex items-center gap-3 w-full sm:w-auto">
         <input type="month" v-model="selectedMonth"
-          class="flex-1 sm:flex-none border border-slate-200 bg-white rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-300 shadow-sm" />
+          class="flex-1 sm:flex-none border border-white/20 bg-white rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-300 shadow-sm" />
         <router-link to="/excellence"
-          class="flex items-center justify-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 active:scale-95 text-slate-500 hover:text-rose-500 text-sm font-medium rounded-lg border border-slate-100 shadow-sm transition-all duration-150 shrink-0">
-          <BackIcon width="10px"/>
+          class="flex items-center justify-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 active:scale-95 text-slate-500 hover:text-rose-500 text-sm font-medium rounded-lg border border-white/20 shadow-sm transition-all duration-150 shrink-0">
+          <BackIcon width="10px" />
           <span class="hidden sm:inline">Asosiy sahifa</span>
         </router-link>
       </div>
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="bg-white rounded-2xl border border-slate-100 shadow-sm p-16 text-center">
+    <div v-if="loading" class="bg-white rounded-2xl border border-white/20 shadow-sm p-16 text-center">
       <div class="flex flex-col items-center gap-3">
         <AppIcon name="spinner" class="w-8 h-8 text-indigo-400 animate-spin" />
         <p class="text-sm text-slate-400">Ma'lumotlar yuklanmoqda...</p>
@@ -40,7 +40,7 @@
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
         <!-- Yig'ilgan pul -->
         <div
-          class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 relative overflow-hidden group hover:shadow-md transition-shadow">
+          class="bg-white rounded-2xl border border-white/20 shadow-sm p-5 relative overflow-hidden group hover:shadow-md transition-shadow">
           <div
             class="absolute top-0 right-0 w-24 h-24 bg-emerald-50 rounded-bl-full opacity-60 group-hover:opacity-100 transition-opacity">
           </div>
@@ -64,7 +64,7 @@
 
         <!-- Xarajat -->
         <div
-          class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 relative overflow-hidden group hover:shadow-md transition-shadow">
+          class="bg-white rounded-2xl border border-white/20 shadow-sm p-5 relative overflow-hidden group hover:shadow-md transition-shadow">
           <div
             class="absolute top-0 right-0 w-24 h-24 bg-rose-50 rounded-bl-full opacity-60 group-hover:opacity-100 transition-opacity">
           </div>
@@ -88,8 +88,8 @@
 
         <!-- Sof foyda/zarar -->
         <div class="rounded-2xl p-5 relative overflow-hidden shadow-sm" :class="summary.profit >= 0
-            ? 'bg-gradient-to-br from-indigo-500 to-indigo-700'
-            : 'bg-gradient-to-br from-orange-400 to-rose-500'
+          ? 'bg-gradient-to-br from-indigo-500 to-indigo-700'
+          : 'bg-gradient-to-br from-orange-400 to-rose-500'
           ">
           <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-bl-full"></div>
           <div class="relative">
@@ -118,7 +118,7 @@
       </div>
 
       <!-- ══════════ STUDENTLAR TO'LOVI STATISTIKASI ══════════ -->
-      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-5">
+      <div class="bg-white rounded-2xl border border-white/20 shadow-sm p-5 mb-5">
         <h2 class="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
           <span class="w-1 h-4 rounded-full bg-indigo-400"></span>
           {{ formatMonth(selectedMonth) }} — studentlar to'lov holati
@@ -163,7 +163,7 @@
         </div>
 
         <!-- ✅ TUZATILGAN: Remaining calculation va conditional coloring -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4 pt-4 border-t border-slate-100">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4 pt-4 border-t border-white/20">
           <div>
             <p class="text-xs text-slate-400 mb-1">
               Jami bo'lishi kerak (100% to'lansa)
@@ -201,8 +201,8 @@
         <div class="mt-4">
           <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
             <div class="h-full rounded-full transition-all duration-500" :class="calculatedRemaining > 0
-                ? 'bg-gradient-to-r from-emerald-400 to-emerald-500'
-                : 'bg-gradient-to-r from-indigo-400 to-indigo-500'
+              ? 'bg-gradient-to-r from-emerald-400 to-emerald-500'
+              : 'bg-gradient-to-r from-indigo-400 to-indigo-500'
               " :style="{ width: collectionPercent + '%' }"></div>
           </div>
           <p class="text-xs text-slate-400 mt-1.5 text-right">
@@ -217,16 +217,16 @@
 
       <!-- Tabs -->
       <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
-        <div class="flex gap-1 bg-white border border-slate-100 shadow-sm rounded-xl p-1">
+        <div class="flex gap-1 bg-white border border-white/20 shadow-sm rounded-xl p-1">
           <button v-for="tab in tabs" :key="tab.key" @click="activeTab = tab.key" :class="activeTab === tab.key
-              ? 'bg-slate-800 text-white shadow-sm'
-              : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+            ? 'bg-slate-800 text-white shadow-sm'
+            : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
             "
             class="px-4 sm:px-5 py-2 text-sm font-medium rounded-lg transition-all duration-150 flex items-center gap-2">
             <span>{{ tab.label }}</span>
             <span class="text-xs px-1.5 py-0.5 rounded-md" :class="activeTab === tab.key
-                ? 'bg-white/20 text-white'
-                : 'bg-slate-100 text-slate-500'
+              ? 'bg-white/20 text-white'
+              : 'bg-slate-100 text-slate-500'
               ">
               {{
                 tab.key === "payments"
@@ -251,28 +251,28 @@
           <div class="relative flex-1 sm:flex-none">
             <AppIcon name="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
             <input v-model="search" type="text" placeholder="Qidirish..."
-              class="w-full sm:w-52 pl-9 pr-4 py-2 text-sm bg-white border border-slate-100 shadow-sm rounded-xl text-slate-700 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300 transition-all" />
+              class="w-full sm:w-52 pl-9 pr-4 py-2 text-sm bg-white border border-white/20 shadow-sm rounded-xl text-slate-700 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300 transition-all" />
           </div>
         </div>
       </div>
 
       <!-- Xarajat qo'shish formasi -->
       <div v-if="activeTab === 'expenses' && showExpenseForm"
-        class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-4">
+        class="bg-white rounded-2xl border border-white/20 shadow-sm p-5 mb-4">
         <h3 class="text-sm font-semibold text-slate-700 mb-4">Yangi xarajat</h3>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           <div>
             <label class="block text-xs text-slate-400 mb-1.5">Nomi</label>
             <input v-model="expenseForm.title" type="text" placeholder="Masalan: Internet" :class="expenseErrorFields.has('title')
-                ? 'border-rose-300 bg-rose-50'
-                : 'border-slate-200'
+              ? 'border-rose-300 bg-rose-50'
+              : 'border-slate-200'
               " class="w-full px-3 py-2 rounded-xl border outline-none text-sm focus:border-indigo-300 transition" />
           </div>
           <div>
             <label class="block text-xs text-slate-400 mb-1.5">Summa (so'm)</label>
             <input v-model.number="expenseForm.amount" type="number" min="0" placeholder="0" :class="expenseErrorFields.has('amount')
-                ? 'border-rose-300 bg-rose-50'
-                : 'border-slate-200'
+              ? 'border-rose-300 bg-rose-50'
+              : 'border-slate-200'
               " class="w-full px-3 py-2 rounded-xl border outline-none text-sm focus:border-indigo-300 transition" />
           </div>
           <div>
@@ -305,10 +305,10 @@
 
       <!-- Payments Table -->
       <div v-if="activeTab === 'payments'"
-        class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-x-auto">
+        class="bg-white rounded-2xl border border-white/20 shadow-sm overflow-x-auto">
         <table class="w-full min-w-[640px]">
           <thead>
-            <tr class="border-b border-slate-100 bg-slate-50/70">
+            <tr class="border-b border-white/20 bg-slate-50/70">
               <th class="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider px-5 py-3.5">
                 Talaba
               </th>
@@ -332,7 +332,7 @@
                 Bu oy uchun to'lov topilmadi
               </td>
             </tr>
-            <tr v-for="p in filteredPayments" :key="p.id" class="hover:bg-slate-50/50 transition-colors group">
+            <tr v-for="p in filteredPayments" :key="p.id" class="hover:bg-white/10 transition-colors group">
               <td class="px-5 py-3.5">
                 <div class="flex items-center gap-2.5">
                   <div
@@ -363,8 +363,8 @@
               </td>
               <td class="px-5 py-3.5">
                 <span :class="p.is_paid
-                    ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100'
-                    : 'bg-amber-50 text-amber-600 ring-1 ring-amber-100'
+                  ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100'
+                  : 'bg-amber-50 text-amber-600 ring-1 ring-amber-100'
                   " class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full">
                   <span class="w-1.5 h-1.5 rounded-full" :class="p.is_paid ? 'bg-emerald-400' : 'bg-amber-400'"></span>
                   {{ p.is_paid ? "To'langan" : "Kutilmoqda" }}
@@ -377,10 +377,10 @@
 
       <!-- Expenses Table -->
       <div v-if="activeTab === 'expenses'"
-        class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-x-auto">
+        class="bg-white rounded-2xl border border-white/20 shadow-sm overflow-x-auto">
         <table class="w-full min-w-[560px]">
           <thead>
-            <tr class="border-b border-slate-100 bg-slate-50/70">
+            <tr class="border-b border-white/20 bg-slate-50/70">
               <th class="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider px-5 py-3.5">
                 Nomi
               </th>
@@ -449,8 +449,8 @@
       <div v-if="toast.show"
         class="fixed bottom-6 right-6 left-6 sm:left-auto flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg text-sm font-medium z-50"
         :class="toast.type === 'success'
-            ? 'bg-emerald-500 text-white'
-            : 'bg-rose-500 text-white'
+          ? 'bg-emerald-500 text-white'
+          : 'bg-rose-500 text-white'
           ">
         <svg v-if="toast.type === 'success'" class="w-4 h-4 shrink-0" fill="none" stroke="currentColor"
           stroke-width="2.5" viewBox="0 0 24 24">
