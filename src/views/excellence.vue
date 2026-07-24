@@ -1078,7 +1078,7 @@ const inputClass = (field) => [
     <div class="flex justify-between items-center mb-6">
       <div class="space-y-2">
         <h1 class="flex gap-3 text-xl sm:text-2xl font-sans">
-          <span><img src="../icon/itline.jpg" alt="" class="w-10 rounded-full animate-spin"
+          <span><img src="../icon/itline.png" alt="" class="w-10 animate-spin"
               style="animation-duration: 5s" /></span>Itline Panel
         </h1>
         <p class="text-gray-400 text-sm mt-0.5">

@@ -5,7 +5,7 @@
       <div>
         <div class="flex items-center gap-2 mb-4">
           <div class="pl-4">
-            <img src="../icon/itline.jpg" alt="" class="w-10 rounded-full animate-spin"
+            <img src="../icon/itline.png" alt="" class="w-10 rounded-full animate-spin"
               style="animation-duration: 5s" />
           </div>
           <h1 class="text-xl sm:text-2xl font-sans text-slate-800 tracking-tight">

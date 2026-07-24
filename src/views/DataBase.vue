@@ -8,7 +8,7 @@
         <div class="flex items-center gap-2 mb-2">
           <div class="pl-1">
             <img
-              src="../icon/itline.jpg"
+              src="../icon/itline.png"
               alt=""
               class="w-10 rounded-full animate-spin"
               style="animation-duration: 5s"
