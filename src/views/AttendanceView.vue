@@ -13,7 +13,7 @@ const currentMonth = new Date().toISOString().slice(0, 7);
 const ODD_DAYS = new Set([1, 3, 5]);
 const EVEN_DAYS = new Set([2, 4, 6]);
 
-const scheduleLabel = { odd: "Du / Chor / Juma", even: "Se / Pay / Shan" };
+const scheduleLabel = { odd: "Du / Chor / Juma", even: "Se / Pay / Shan", daily: "Har kuni" };
 const statusStyle = {
   present: "bg-green-100 text-green-700",
   late: "bg-yellow-100 text-yellow-700",

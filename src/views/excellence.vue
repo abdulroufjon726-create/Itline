@@ -1786,6 +1786,14 @@ const inputClass = (field) => [
               ]">
                 Se / Pay / Shan
               </button>
+              <button type="button" @click="addForm.schedule = 'daily'" :class="[
+                'flex-1 py-2 rounded-xl text-sm border transition cursor-pointer',
+                addForm.schedule === 'daily'
+                  ? 'bg-gray-900 text-white border-gray-900'
+                  : 'border-gray-200 text-gray-600 hover:bg-gray-50',
+              ]">
+                Har kuni
+              </button>
             </div>
           </div>
         </template>

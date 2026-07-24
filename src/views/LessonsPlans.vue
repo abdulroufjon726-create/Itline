@@ -44,6 +44,7 @@ const DAY_NAMES = [
 const SCHEDULE_LABEL = {
   odd: "Du / Chor / Juma",
   even: "Se / Pay / Shan",
+  daily: "Har kuni",
 };
 
 // ─────────────────────────────
@@ -424,7 +425,11 @@ const todayDate = computed(() =>
 const todaysGroups = computed(() => {
   if (!todaySchedule.value) return [];
   const filtered = groups.value
-    .filter((g) => g.schedule === todaySchedule.value && g.lesson_time)
+    .filter(
+      (g) =>
+        (g.schedule === todaySchedule.value || g.schedule === "daily") &&
+        g.lesson_time,
+    )
     .slice();
 
   // Joriy vaqtni olish

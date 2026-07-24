@@ -140,7 +140,7 @@
                   <span v-else class="text-rose-400 text-xs">biriktirilmagan</span>
                 </td>
                 <td class="px-3 py-2 text-slate-400 text-xs">
-                  {{ s.schedule === "odd" ? "Du-Chor-Ju" : "Se-Pay-Sha" }}
+                  {{ s.schedule === "odd" ? "Du-Chor-Ju" : s.schedule === "daily" ? "Har kuni" : "Se-Pay-Sha" }}
                 </td>
                 <td v-if="canManage" class="px-3 py-2 text-right" @click.stop>
                   <button

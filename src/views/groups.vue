@@ -63,6 +63,7 @@ const avatarColors = [
 const SCHEDULE_LABEL = {
   odd: "Du / Chor / Juma",
   even: "Se / Pay / Shan",
+  daily: "Har kuni",
 };
 
 // ─────────────────────────────
@@ -796,22 +797,30 @@ async function sendGroupMsg() {
                 <!-- Schedule field -->
                 <div class="mb-4">
                   <label class="text-xs text-gray-400 uppercase tracking-wide block mb-1.5">Dars kunlari</label>
-                  <div class="flex gap-2">
+                  <div class="grid grid-cols-3 gap-2">
                     <button type="button" @click="form.schedule = 'odd'" :class="[
-                      'flex-1 py-2.5 rounded-xl text-sm border transition cursor-pointer',
+                      'py-2.5 rounded-xl text-xs sm:text-sm border transition cursor-pointer',
                       form.schedule === 'odd'
                         ? 'bg-blue-600 text-white border-blue-600'
                         : 'border-gray-200 text-gray-600 hover:bg-gray-50',
                     ]">
-                      <AppIcon name="schedule" /> Du / Chor / Juma
+                      Du / Chor / Juma
                     </button>
                     <button type="button" @click="form.schedule = 'even'" :class="[
-                      'flex-1 py-2.5 rounded-xl text-sm border transition cursor-pointer',
+                      'py-2.5 rounded-xl text-xs sm:text-sm border transition cursor-pointer',
                       form.schedule === 'even'
                         ? 'bg-blue-600 text-white border-blue-600'
                         : 'border-gray-200 text-gray-600 hover:bg-gray-50',
                     ]">
-                      <AppIcon name="schedule" /> Se / Pay / Shan
+                      Se / Pay / Shan
+                    </button>
+                    <button type="button" @click="form.schedule = 'daily'" :class="[
+                      'py-2.5 rounded-xl text-xs sm:text-sm border transition cursor-pointer',
+                      form.schedule === 'daily'
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'border-gray-200 text-gray-600 hover:bg-gray-50',
+                    ]">
+                      Har kuni
                     </button>
                   </div>
                   <p class="text-xs text-gray-400 mt-2">
