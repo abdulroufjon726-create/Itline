@@ -374,11 +374,19 @@ async function fetchTgStatus() {
 const msgModal = ref({
   open: false,
   mode: "single", // single | all
+  target: "all", // "all" rejimida: all | unpaid (to'lov qilmaganlar)
   student: null,
   sending: false,
   text: "",
 });
 const msgResult = ref(null);
+
+// Joriy oy uchun to'lov qilmagan o'quvchilar id'lari
+const unpaidStudentIds = computed(() =>
+  payments.value
+    .filter((p) => !(p.is_checked || p.is_paid))
+    .map((p) => p.student_id),
+);
 
 function defaultReminderText() {
   return (
@@ -393,6 +401,7 @@ function openMsgModal(mode, payment = null) {
   msgModal.value = {
     open: true,
     mode,
+    target: "all",
     student: payment
       ? { id: payment.student_id, name: payment.student_name }
       : null,
@@ -436,6 +445,14 @@ async function sendMsg() {
     if (m.mode === "single" && m.student) {
       url = `${API}/messages/send/`;
       body.student_id = m.student.id;
+    } else if (m.target === "unpaid") {
+      const ids = unpaidStudentIds.value;
+      if (!ids.length) {
+        msgResult.value = { error: "To'lov qilmagan o'quvchi topilmadi" };
+        return;
+      }
+      url = `${API}/messages/send-students/`;
+      body.student_ids = ids;
     }
     const res = await fetch(url, {
       method: "POST",
@@ -1808,11 +1825,33 @@ const inputClass = (field) => [
             {{
               msgModal.mode === "single"
                 ? `${msgModal.student?.name}ga xabar`
-                : "Barcha o'quvchilarga xabar"
+                : msgModal.target === "unpaid"
+                  ? "To'lov qilmaganlarga xabar"
+                  : "Barcha o'quvchilarga xabar"
             }}
           </h3>
           <button @click="msgModal.open = false" class="text-gray-400 hover:text-gray-600 text-xl leading-none">
             ×
+          </button>
+        </div>
+
+        <!-- Kimga yuborish: barchaga yoki to'lov qilmaganlarga -->
+        <div v-if="msgModal.mode !== 'single'" class="grid grid-cols-2 gap-2 mb-3">
+          <button @click="msgModal.target = 'all'" :class="[
+            'px-3 py-2 rounded-xl text-xs sm:text-sm font-medium border transition',
+            msgModal.target === 'all'
+              ? 'bg-sky-500 text-white border-sky-500'
+              : 'border-gray-200 text-gray-600 hover:bg-gray-50',
+          ]">
+            <AppIcon name="users" /> Barchaga
+          </button>
+          <button @click="msgModal.target = 'unpaid'" :class="[
+            'px-3 py-2 rounded-xl text-xs sm:text-sm font-medium border transition',
+            msgModal.target === 'unpaid'
+              ? 'bg-sky-500 text-white border-sky-500'
+              : 'border-gray-200 text-gray-600 hover:bg-gray-50',
+          ]">
+            <AppIcon name="payment" /> To'lov qilmaganlar ({{ unpaidStudentIds.length }})
           </button>
         </div>
 
