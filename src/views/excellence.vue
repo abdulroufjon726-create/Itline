@@ -766,6 +766,14 @@ function formatDue(payment) {
   return `${parts[2]}.${parts[1]}`;
 }
 
+// Davomatga qarab hisoblangan to'lovni "Oylik to'lov" summasiga qo'yadi
+// (kelgan darslar uchun) — shunda "Qolgan" ham to'g'ri hisoblanadi
+function applyAttendanceDue(payment) {
+  if (payment.attendance_due == null) return;
+  payment.amount_due = payment.attendance_due;
+  savePaymentRow(payment);
+}
+
 // Vaqtida to'lov coin mukofoti berilganda ko'rsatiladigan xabar
 const coinToast = ref("");
 let coinToastTimer = null;
@@ -1173,7 +1181,7 @@ const inputClass = (field) => [
         Yuklanmoqda...
       </div>
       <div v-else class=" border border-white/20 rounded-2xl overflow-x-auto">
-        <table class="pay-nowrap w-full text-sm min-w-[1120px]">
+        <table class="pay-nowrap w-full text-sm min-w-[1260px]">
           <thead>
             <tr class="bg-gray-50 border-b border-gray-100">
               <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">
@@ -1190,6 +1198,9 @@ const inputClass = (field) => [
               </th>
               <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">
                 Oylik to'lov
+              </th>
+              <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">
+                Davomat to'lovi
               </th>
               <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">
                 Muddat
@@ -1216,7 +1227,7 @@ const inputClass = (field) => [
               <!-- Guruh sarlavhasi (bosilganда ochiladi/yopiladi) -->
               <tr v-if="section.name" :key="'h-' + section.key" @click="toggleGroup(section.key)"
                 class="bg-blue-900/20 border-y border-white/10 cursor-pointer hover:bg-blue-800/10 transition select-none">
-                <td colspan="11" class="px-4 py-2.5">
+                <td colspan="12" class="px-4 py-2.5">
                   <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
                     <div class="flex items-center gap-2 font-semibold text-gray-700">
                       <AppIcon name="chevron-down" class="text-gray-400 transition-transform duration-200"
@@ -1257,6 +1268,19 @@ const inputClass = (field) => [
                     {{ courseLabel(payment) }}
                   </td>
                   <td class="px-4 py-3">{{ money(paymentAmountDue(payment)) }}</td>
+                  <td class="px-4 py-3">
+                    <template v-if="payment.total_lessons">
+                      <div class="text-[11px] text-gray-400">
+                        {{ payment.attended_count }}/{{ payment.total_lessons }} dars
+                      </div>
+                      <button @click="applyAttendanceDue(payment)"
+                        class="text-xs font-semibold text-indigo-500 hover:text-indigo-600 hover:underline"
+                        title="Shu summani 'Oylik to'lov'ga qo'yish">
+                        {{ money(payment.attendance_due) }}
+                      </button>
+                    </template>
+                    <span v-else class="text-gray-300">—</span>
+                  </td>
                   <td class="px-4 py-3 text-gray-500 whitespace-nowrap">
                     {{ formatDue(payment) }}
                   </td>
