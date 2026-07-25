@@ -39,6 +39,8 @@ const savingGroup = ref(false);
 // panel: null | 'create' | 'edit' | 'detail'
 const panel = ref(null);
 const activeGroup = ref(null);
+// Detail panelida o'quvchilar ro'yxati default yopiq — foydalanuvchi bosganda ochiladi
+const showStudents = ref(false);
 
 const form = ref({
   name: "",
@@ -102,12 +104,20 @@ const myTeacherId = computed(() => user?.teacher_id ?? null);
 
 // Guruhni qidirish — nom, o'qituvchi yoki xona bo'yicha
 const groupSearch = ref("");
+// O'qituvchi bo'yicha filter (null = barcha o'qituvchilar)
+const filterTeacherId = ref(null);
 
 const visibleGroups = computed(() => {
   let list = groups.value;
   if (!(showAllTeachers.value || !myTeacherId.value)) {
     list = list.filter(
       (g) => (g.teacher?.id ?? g.teacher_id) === myTeacherId.value,
+    );
+  }
+  // O'qituvchi bo'yicha filter (dropdown)
+  if (filterTeacherId.value) {
+    list = list.filter(
+      (g) => (g.teacher?.id ?? g.teacher_id) === filterTeacherId.value,
     );
   }
   const q = groupSearch.value.trim().toLowerCase();
@@ -248,11 +258,21 @@ function openEdit(group) {
   studentSearch.value = "";
   activeGroup.value = group;
   panel.value = "edit";
+  scrollToTop();
+}
+
+// Guruh tanlanganda panelni ko'rish uchun sahifani tepaga scroll qiladi
+function scrollToTop() {
+  if (typeof window !== "undefined") {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 }
 
 function openDetail(group) {
   activeGroup.value = group;
   panel.value = "detail";
+  showStudents.value = false; // har safar yopiq holatda ochiladi
+  scrollToTop();
 }
 
 function closePanel() {
@@ -509,6 +529,27 @@ async function sendGroupMsg() {
                 </div>
               </div>
 
+              <!-- O'qituvchi bo'yicha filter -->
+              <div v-if="teachers.length" class="p-3 border-b border-gray-100">
+                <div class="relative">
+                  <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-300">
+                    <AppIcon name="teacher" />
+                  </span>
+                  <select
+                    v-model.number="filterTeacherId"
+                    class="w-full appearance-none border border-gray-200 rounded-xl pl-9 pr-9 py-2.5 text-sm outline-none focus:border-gray-400 bg-white transition"
+                  >
+                    <option :value="null">Barcha o'qituvchilar</option>
+                    <option v-for="t in teachers" :key="t.id" :value="t.id">
+                      {{ t.name }}
+                    </option>
+                  </select>
+                  <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-300">
+                    <AppIcon name="chevron-down" />
+                  </span>
+                </div>
+              </div>
+
               <!-- Guruh filtri: o'zimniki / barcha ustozlar -->
               <div
                 v-if="myTeacherId"
@@ -630,7 +671,7 @@ async function sendGroupMsg() {
           <!-- Panel column — full screen on mobile, side panel on desktop -->
           <div v-if="panel" :class="[
             'lg:col-span-3',
-            'fixed inset-0 z-40 lg:static lg:inset-auto lg:z-auto',
+            'fixed inset-0 z-40 lg:sticky lg:top-6 lg:self-start lg:inset-auto lg:z-auto',
             'flex flex-col',
           ]">
             <!-- Mobile backdrop -->
@@ -638,7 +679,7 @@ async function sendGroupMsg() {
 
             <!-- Panel content -->
             <div
-              class="relative mt-auto lg:mt-0 bg-white lg:rounded-2xl shadow-lg lg:shadow-sm rounded-t-3xl max-h-[92dvh] lg:max-h-none overflow-y-auto p-5">
+              class="relative mt-auto lg:mt-0 bg-white lg:rounded-2xl shadow-lg lg:shadow-sm rounded-t-3xl max-h-[92dvh] lg:max-h-[calc(100dvh-3rem)] overflow-y-auto p-5">
               <!-- Mobile drag handle -->
               <div class="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4 lg:hidden"></div>
 
@@ -709,10 +750,7 @@ async function sendGroupMsg() {
                   </button>
                 </div>
 
-                <p class="text-xs text-gray-400 uppercase tracking-wide mb-3">
-                  O'quvchilar — {{ activeGroup.students?.length || 0 }} ta
-                </p>
-
+                <!-- Kurs ma'lumoti -->
                 <div class="space-y-3 mb-4">
                   <div v-if="groupCourse(activeGroup)" class="text-sm text-gray-500">
                     <p class="font-medium">Kurs: {{ groupCourse(activeGroup).name }}</p>
@@ -720,32 +758,49 @@ async function sendGroupMsg() {
                   </div>
                   <div v-else class="text-sm text-gray-500">Kurs belgilanmagan</div>
                 </div>
-                <div v-if="activeGroup.students?.length > 0" class="space-y-2">
-                  <div v-for="(s, i) in activeGroup.students" :key="s.id"
-                    class="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50">
-                    <div class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
-                      :style="avatarColors[i % avatarColors.length]">
-                      {{ initials(s) }}
-                    </div>
-                    <div class="flex-1 min-w-0">
-                      <p class="text-sm font-medium truncate">
-                        {{ s.name }} {{ s.surname }}
-                      </p>
-                      <p class="text-xs text-gray-400">{{ s.phone }}</p>
-                    </div>
-                    <span class="text-xs text-gray-400 shrink-0 bg-gray-100 px-2 py-0.5 rounded-full">
-                      {{ s.stage }}-etap
+
+                <!-- O'quvchilar — default yopiq, bosilganda ochiladi -->
+                <button type="button" @click="showStudents = !showStudents"
+                  class="flex w-full items-center justify-between gap-2 mb-3 rounded-xl border border-gray-100 px-3.5 py-2.5 text-left transition hover:bg-gray-50">
+                  <span class="text-xs text-gray-500 uppercase tracking-wide">
+                    O'quvchilar — {{ activeGroup.students?.length || 0 }} ta
+                  </span>
+                  <span class="flex items-center gap-1 text-xs text-gray-400">
+                    {{ showStudents ? "Yopish" : "Ko'rish" }}
+                    <span class="transition-transform" :class="showStudents ? 'rotate-180' : ''">
+                      <AppIcon name="chevron-down" />
                     </span>
-                    <button v-if="canCreateGroup" @click.stop="deleteStudent(s)"
-                      title="Studentni butunlay o'chirish"
-                      class="shrink-0 text-gray-300 hover:text-red-500 transition text-sm px-1.5 py-1 rounded-lg hover:bg-red-50">
-                      <AppIcon name="trash" />
-                    </button>
+                  </span>
+                </button>
+
+                <div v-show="showStudents">
+                  <div v-if="activeGroup.students?.length > 0" class="space-y-2">
+                    <div v-for="(s, i) in activeGroup.students" :key="s.id"
+                      class="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50">
+                      <div class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
+                        :style="avatarColors[i % avatarColors.length]">
+                        {{ initials(s) }}
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium truncate">
+                          {{ s.name }} {{ s.surname }}
+                        </p>
+                        <p class="text-xs text-gray-400">{{ s.phone }}</p>
+                      </div>
+                      <span class="text-xs text-gray-400 shrink-0 bg-gray-100 px-2 py-0.5 rounded-full">
+                        {{ s.stage }}-etap
+                      </span>
+                      <button v-if="canCreateGroup" @click.stop="deleteStudent(s)"
+                        title="Studentni butunlay o'chirish"
+                        class="shrink-0 text-gray-300 hover:text-red-500 transition text-sm px-1.5 py-1 rounded-lg hover:bg-red-50">
+                        <AppIcon name="trash" />
+                      </button>
+                    </div>
                   </div>
-                </div>
-                <div v-else
-                  class="text-center py-8 text-gray-400 text-sm border border-dashed border-gray-200 rounded-xl">
-                  Bu guruhda hozircha o'quvchi yo'q
+                  <div v-else
+                    class="text-center py-8 text-gray-400 text-sm border border-dashed border-gray-200 rounded-xl">
+                    Bu guruhda hozircha o'quvchi yo'q
+                  </div>
                 </div>
               </template>
 
@@ -912,7 +967,8 @@ async function sendGroupMsg() {
                   </div>
                 </div>
 
-                <div class="flex gap-2 pt-2 pb-2">
+                <div
+                  class="sticky -bottom-5 -mx-5 mt-2 flex gap-2 border-t border-gray-100 bg-white px-5 pt-3 pb-2">
                   <button @click="saveGroup" :disabled="savingGroup"
                     class="flex-1 bg-black text-white py-2.5 rounded-xl text-sm hover:bg-gray-800 transition disabled:opacity-50">
                     {{
