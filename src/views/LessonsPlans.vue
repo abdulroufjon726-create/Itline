@@ -4,6 +4,8 @@ import { useRouter } from "vue-router";
 import lessonSoundFile from "/sounds/mixkit-airport-announcement-ding-1569.wav";
 import newsSoundFile from "/sounds/mixkit-elegant-door-announcement-224.wav";
 import AppIcon from "@/components/AppIcon.vue";
+import telegramQrImg from "../icon/telegram_QR.png";
+import itlineWebQrImg from "../icon/Itline_web-qr.png";
 
 const router = useRouter();
 const API = "https://itline-django-9s85.onrender.com/api";
@@ -582,16 +584,128 @@ const PRIORITY_DOT = {
   important: "bg-amber-400",
   normal: "bg-slate-500",
 };
+
+// ✅ E'lon dotslarini ham qo'lda tanlash mumkin (karusel to'xtab, qaytadan boshlanadi)
+function selectNews(idx) {
+  currentNewsIndex.value = idx;
+  clearInterval(newsRotateTimer);
+  startNewsRotation();
+}
+
+// ─────────────────────────────
+// REYTING (Top 10 o'quvchi — coin bo'yicha)
+// Backend /leaderboard/ faqat oddiy o'quvchilarni coin bo'yicha tartiblab beradi
+// ─────────────────────────────
+
+const leaderboard = ref([]);
+let leaderboardTimer = null;
+
+async function fetchLeaderboard() {
+  try {
+    const res = await fetch(`${API}/leaderboard/`);
+    if (!res.ok) return;
+    leaderboard.value = await res.json();
+  } catch (e) {
+    // jim
+  }
+}
+
+const topStudents = computed(() => leaderboard.value.slice(0, 10));
+
+function rankClass(i) {
+  if (i === 0)
+    return "bg-amber-400 text-slate-950 shadow-[0_0_16px_rgba(251,191,36,0.5)]";
+  if (i === 1) return "bg-slate-300 text-slate-900";
+  if (i === 2) return "bg-orange-400/90 text-slate-950";
+  return "bg-slate-800 text-slate-400";
+}
+
+// ─────────────────────────────
+// BOARD KARUSEL: jadval (60s) ↔ reyting (30s)
+// ⚠️ Bu dars/e'lon popuplariga ta'sir qilmaydi — ular alohida Teleport overlay,
+//    o'z navbati/taymeri bilan ishlaydi (showNextPopup / popupQueue).
+// ─────────────────────────────
+
+const boardView = ref("schedule"); // 'schedule' | 'leaderboard'
+const BOARD_DURATION = { schedule: 60000, leaderboard: 30000 };
+let boardRotateTimer = null;
+
+function scheduleBoardRotation() {
+  clearTimeout(boardRotateTimer);
+  boardRotateTimer = setTimeout(() => {
+    boardView.value = boardView.value === "schedule" ? "leaderboard" : "schedule";
+    scheduleBoardRotation();
+  }, BOARD_DURATION[boardView.value]);
+}
+
+function setBoardView(view) {
+  boardView.value = view;
+  scheduleBoardRotation(); // qo'lda tanlanganda taymer qaytadan boshlanadi
+}
+
+// ─────────────────────────────
+// QR KARUSEL: har biri 30s, e'lonlardagidek tanlanadi
+// ─────────────────────────────
+
+const QR_ACCENT = {
+  sky: {
+    ring: "ring-sky-400/40",
+    shadow: "shadow-sky-500/20",
+    text: "text-sky-300",
+    dotOn: "bg-sky-400",
+  },
+  amber: {
+    ring: "ring-amber-400/40",
+    shadow: "shadow-amber-500/20",
+    text: "text-amber-300",
+    dotOn: "bg-amber-400",
+  },
+};
+
+const qrCards = [
+  { id: "telegram", label: "Telegram", img: telegramQrImg, icon: "send", accent: "sky" },
+  { id: "website", label: "Veb-sayt", img: itlineWebQrImg, icon: "globe", accent: "amber" },
+];
+
+const currentQrIndex = ref(0);
+const QR_ROTATE_MS = 30000;
+let qrRotateTimer = null;
+
+function startQrRotation() {
+  clearInterval(qrRotateTimer);
+  qrRotateTimer = setInterval(() => {
+    currentQrIndex.value = (currentQrIndex.value + 1) % qrCards.length;
+  }, QR_ROTATE_MS);
+}
+
+function selectQr(idx) {
+  currentQrIndex.value = idx;
+  startQrRotation(); // qo'lda tanlanganda taymer qaytadan boshlanadi
+}
+
+onMounted(() => {
+  fetchLeaderboard();
+  leaderboardTimer = setInterval(fetchLeaderboard, 60000);
+  scheduleBoardRotation();
+  startQrRotation();
+});
+
+onUnmounted(() => {
+  clearInterval(leaderboardTimer);
+  clearTimeout(boardRotateTimer);
+  clearInterval(qrRotateTimer);
+});
 </script>
 
 <template>
   <div class="min-h-screen bg-gradient-to-r from-[#000000] to-[#130F40] px-4 py-6 sm:py-10">
     <div class="mx-auto flex max-w-[1800px] flex-col items-start gap-5 lg:flex-row lg:gap-6">
       <!-- ══════════ NEWS SIDEBAR ══════════ -->
-      <aside v-if="news.length" class="order-1 w-full shrink-0 lg:sticky lg:top-10 lg:order-2 lg:w-72 2xl:w-80">
+      <aside class="order-1 w-full shrink-0 lg:sticky lg:top-10 lg:order-2 lg:w-72 2xl:w-80"
+        :class="news.length ? '' : 'hidden lg:block'">
         <div
           class="overflow-hidden rounded-2xl border border-slate-800 shadow-2xl shadow-black/50 animate-[fadeIn_0.4s_ease]">
-          <div class="flex items-center gap-2 border-b border-slate-800/80 px-6 py-5">
+          <div v-if="news.length" class="flex items-center gap-2 border-b border-slate-800/80 px-6 py-5">
             <span class="text-amber-400 text-lg">
               <AppIcon name="megaphone" />
             </span>
@@ -600,7 +714,7 @@ const PRIORITY_DOT = {
             </p>
           </div>
 
-          <div class="p-5">
+          <div v-if="news.length" class="p-5">
             <div class="rounded-2xl border px-5 py-5 transition-opacity duration-300"
               :class="PRIORITY_STYLE[news[currentNewsIndex].priority]">
               <div class="mb-2.5 flex items-start gap-2.5">
@@ -619,23 +733,69 @@ const PRIORITY_DOT = {
               </p>
             </div>
 
-            <!-- Rotatsiya indikatorlari -->
+            <!-- Rotatsiya indikatorlari (bosiladi) -->
             <div v-if="news.length > 1" class="mt-3 flex items-center justify-center gap-1.5">
-              <span v-for="(n, idx) in news" :key="n.id" class="h-1.5 rounded-full transition-all" :class="idx === currentNewsIndex
+              <button v-for="(n, idx) in news" :key="n.id" type="button" @click="selectNews(idx)"
+                :aria-label="`E'lon ${idx + 1}`" class="h-1.5 rounded-full transition-all" :class="idx === currentNewsIndex
                   ? 'w-4 bg-amber-400'
-                  : 'w-1.5 bg-slate-700'
-                "></span>
+                  : 'w-1.5 bg-slate-700 hover:bg-slate-600'
+                  "></button>
+            </div>
+          </div>
+
+          <!-- ══════════ QR ULANISH — e'lon bo'lmasa ham ko'rinadi (faqat katta ekran) ══════════ -->
+          <div
+            class="hidden bg-gradient-to-br from-[#1d2a57] via-[#141a38] to-[#0b1030] px-5 py-6 lg:block"
+            :class="news.length ? 'border-t border-white/10' : ''">
+            <div class="mb-4 flex items-center justify-center gap-2.5">
+              <span class="h-px w-6 bg-gradient-to-r from-transparent to-sky-400/70"></span>
+              <p class="text-[11px] font-bold uppercase tracking-[0.22em] text-slate-300">
+                Biz bilan bog'laning
+              </p>
+              <span class="h-px w-6 bg-gradient-to-l from-transparent to-amber-400/70"></span>
+            </div>
+
+            <!-- Aylanuvchi QR — har biri 30s (e'lonlardagidek tanlanadi).
+                 :key almashganda element qayta mount bo'lib, qrIn animatsiyasi
+                 o'ynaydi — Vue Transition'siz, shuning uchun fon tab'da ham
+                 hech qachon "osilib" qolmaydi. -->
+            <div class="flex justify-center">
+              <div :key="currentQrIndex"
+                class="flex animate-[qrIn_0.4s_ease] flex-col items-center gap-3">
+                <div class="w-44 overflow-hidden rounded-2xl bg-white p-2.5 shadow-lg ring-1"
+                  :class="[
+                    QR_ACCENT[qrCards[currentQrIndex].accent].ring,
+                    QR_ACCENT[qrCards[currentQrIndex].accent].shadow,
+                  ]">
+                  <img :src="qrCards[currentQrIndex].img" :alt="qrCards[currentQrIndex].label + ' QR'"
+                    class="aspect-square w-full rounded-xl object-contain" />
+                </div>
+                <span class="flex items-center gap-1.5 text-sm font-semibold"
+                  :class="QR_ACCENT[qrCards[currentQrIndex].accent].text">
+                  <AppIcon :name="qrCards[currentQrIndex].icon" class="text-[14px]" />
+                  {{ qrCards[currentQrIndex].label }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Tanlash indikatorlari (bosiladi) -->
+            <div class="mt-4 flex items-center justify-center gap-2">
+              <button v-for="(qr, idx) in qrCards" :key="qr.id" type="button" @click="selectQr(idx)"
+                :aria-label="qr.label" class="h-1.5 rounded-full transition-all"
+                :class="idx === currentQrIndex
+                  ? ['w-5', QR_ACCENT[qr.accent].dotOn]
+                  : 'w-1.5 bg-slate-600 hover:bg-slate-500'
+                  "></button>
             </div>
           </div>
         </div>
       </aside>
-
       <!-- ══════════ SCHEDULE BOARD ══════════ -->
       <div
         class="order-2 w-full  min-w-0 border overflow-hidden rounded-2xl  shadow-2xl shadow-black/50 transition-all duration-500 animate-[fadeIn_0.4s_ease] lg:order-1 lg:flex-1"
         :class="visualAlert
-            ? 'border-amber-400 shadow-[0_0_40px_rgba(251,191,36,0.35)] animate-[boardFlash_0.6s_ease-in-out_3]'
-            : 'border-slate-800/80'
+          ? 'border-amber-400 shadow-[0_0_40px_rgba(251,191,36,0.35)] animate-[boardFlash_0.6s_ease-in-out_3]'
+          : 'border-slate-800/80'
           ">
         <!-- Header -->
         <div class="flex items-center justify-between gap-3 border-b bg-white/10 px-5 py-5 sm:px-7">
@@ -646,10 +806,10 @@ const PRIORITY_DOT = {
             </RouterLink>
             <div class="min-w-0">
               <p class="text-[10.5px] font-bold tracking-[0.16em] text-amber-400">
-                DARSLAR TAXTASI
+                {{ boardView === 'schedule' ? 'DARSLAR TAXTASI' : 'REYTING' }}
               </p>
               <h1 class="truncate text-xl font-bold text-white">
-                Bugungi jadval
+                {{ boardView === 'schedule' ? 'Bugungi jadval' : "Top 10 o'quvchi" }}
               </h1>
             </div>
           </div>
@@ -675,6 +835,36 @@ const PRIORITY_DOT = {
           </div>
         </div>
 
+        <!-- ══════════ KARUSEL TABLARI (jadval ↔ reyting) ══════════ -->
+        <div class="flex items-center gap-2 border-b border-slate-800/60 px-5 py-3 sm:px-7">
+          <button type="button" @click="setBoardView('schedule')"
+            class="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold tracking-wide transition"
+            :class="boardView === 'schedule'
+              ? 'bg-amber-400 text-slate-950 shadow-[0_0_16px_rgba(251,191,36,0.4)]'
+              : 'text-slate-400 hover:text-amber-400'
+              ">
+            <AppIcon name="schedule" /> Jadval
+          </button>
+          <button type="button" @click="setBoardView('leaderboard')"
+            class="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold tracking-wide transition"
+            :class="boardView === 'leaderboard'
+              ? 'bg-amber-400 text-slate-950 shadow-[0_0_16px_rgba(251,191,36,0.4)]'
+              : 'text-slate-400 hover:text-amber-400'
+              ">
+            <AppIcon name="trophy" /> Reyting
+          </button>
+          <span
+            class="ml-auto hidden items-center gap-1.5 text-[11px] uppercase tracking-[0.1em] text-slate-500 sm:flex">
+            <span class="relative flex h-1.5 w-1.5">
+              <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400/60"></span>
+              <span class="relative inline-flex h-1.5 w-1.5 rounded-full bg-amber-400"></span>
+            </span>
+            Avto almashinuv
+          </span>
+        </div>
+
+        <!-- ══════════ JADVAL KO'RINISHI ══════════ -->
+        <template v-if="boardView === 'schedule'">
         <!-- Column labels (desktop) -->
         <div v-if="!loading && todaysGroups.length"
           class="hidden grid-cols-[84px_1.2fr_84px_2.3fr_1.1fr_60px_124px] gap-2.5 border-b border-slate-800/60  px-5 py-4 text-xs tracking-[0.1em] text-slate-50 sm:grid sm:px-7">
@@ -791,6 +981,53 @@ const PRIORITY_DOT = {
             </div>
           </div>
         </div>
+        </template>
+
+        <!-- ══════════ REYTING KO'RINISHI (Top 10 o'quvchi) ══════════ -->
+        <template v-else>
+          <!-- Bo'sh holat -->
+          <div v-if="!topStudents.length" class="px-6 py-16 text-center text-sm text-slate-500">
+            <p class="mb-2 text-3xl"><AppIcon name="trophy" /></p>
+            <p>Reyting hozircha bo'sh</p>
+          </div>
+
+          <!-- Ro'yxat -->
+          <div v-else class="divide-y divide-slate-800/60">
+            <div v-for="(s, i) in topStudents" :key="s.id"
+              class="flex animate-[rowIn_0.3s_ease_backwards] items-center gap-4 px-5 py-4 sm:px-7"
+              :class="i === 0 ? 'bg-amber-400/5' : ''"
+              :style="{ animationDelay: `${Math.min(i * 45, 450)}ms` }">
+              <!-- O'rin -->
+              <span
+                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl font-['Space_Mono',monospace] text-lg font-bold"
+                :class="rankClass(i)">
+                {{ i + 1 }}
+              </span>
+
+              <!-- Avatar + ism -->
+              <div class="flex min-w-0 flex-1 items-center gap-3">
+                <span
+                  class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-800 text-[11px] font-bold text-amber-400">
+                  {{ initials(`${s.name} ${s.surname}`) }}
+                </span>
+                <div class="min-w-0">
+                  <p class="truncate text-base font-semibold text-slate-100">
+                    {{ s.name }} {{ s.surname }}
+                  </p>
+                  <p class="truncate text-xs text-slate-500">
+                    {{ s.teacher_name || "Biriktirilmagan" }}
+                  </p>
+                </div>
+              </div>
+
+              <!-- Coin -->
+              <span
+                class="flex shrink-0 items-center gap-1.5 rounded-full bg-slate-800/80 px-3 py-1.5 font-['Space_Mono',monospace] text-base font-bold text-amber-300">
+                <AppIcon name="coin" /> {{ s.coin_balance }}
+              </span>
+            </div>
+          </div>
+        </template>
       </div>
     </div>
 
@@ -799,8 +1036,8 @@ const PRIORITY_DOT = {
       <Transition name="popup">
         <div v-if="activePopup" class="popup-overlay" @click.self="closePopup">
           <div class="popup-card" :class="activePopup.kind === 'lesson'
-              ? 'popup-lesson'
-              : `popup-news popup-${activePopup.priority}`
+            ? 'popup-lesson'
+            : `popup-news popup-${activePopup.priority}`
             ">
             <button type="button" class="popup-close" @click="closePopup" aria-label="Yopish">
               <AppIcon name="x" />
@@ -895,6 +1132,19 @@ const PRIORITY_DOT = {
 
   50% {
     box-shadow: 0 0 55px rgba(251, 191, 36, 0.55);
+  }
+}
+
+/* ══════════ QR KARUSEL ALMASHINUVI ══════════ */
+@keyframes qrIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 
