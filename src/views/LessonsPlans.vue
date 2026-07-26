@@ -610,14 +610,14 @@ async function fetchLeaderboard() {
   }
 }
 
-const topStudents = computed(() => leaderboard.value.slice(0, 10));
+const topStudents = computed(() => leaderboard.value.slice(0, 5));
 
 function rankClass(i) {
   if (i === 0)
-    return "bg-amber-400 text-slate-950 shadow-[0_0_16px_rgba(251,191,36,0.5)]";
-  if (i === 1) return "bg-slate-300 text-slate-900";
-  if (i === 2) return "bg-orange-400/90 text-slate-950";
-  return "bg-slate-800 text-slate-400";
+    return "bg-amber-400 text-white shadow-[0_0_16px_rgba(251,191,36,0.5)]";
+  if (i === 1) return "bg-slate-500 text-slate-900";
+  if (i === 2) return "bg-orange-400/90 text-white";
+  return "bg-slate-800 text-white";
 }
 
 // ─────────────────────────────
