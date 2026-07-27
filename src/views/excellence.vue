@@ -367,16 +367,19 @@ const groupedPayments = computed(() => {
         payments: [],
         totalDue: 0,
         totalPaid: 0,
+        outstanding: 0,
       });
     }
     const sec = map.get(name);
     sec.payments.push(p);
     sec.totalDue += paymentNetDue(p);
     sec.totalPaid += paymentPaidAmount(p);
+    // Qolgan — faqat to'lanmagan qism (ortiqcha to'lov manfiy qilmaydi)
+    sec.outstanding += Math.max(0, remainingAmount(p));
   }
   const arr = [...map.values()].map((s) => ({
     ...s,
-    remaining: s.totalDue - s.totalPaid,
+    remaining: s.outstanding,
   }));
   arr.sort((a, b) => {
     if (a.name === "Guruhsiz") return 1;
@@ -615,7 +618,10 @@ const totalAmount = computed(() =>
 const paidAmount = computed(() =>
   payments.value.reduce((a, b) => a + paymentPaidAmount(b), 0),
 );
-const unpaidAmount = computed(() => totalAmount.value - paidAmount.value);
+// Qolgan = faqat to'lanmagan qismlar yig'indisi (ortiqcha to'lov 0, manfiy bo'lmaydi)
+const unpaidAmount = computed(() =>
+  payments.value.reduce((a, b) => a + Math.max(0, remainingAmount(b)), 0),
+);
 
 const historyTotalAmount = computed(() =>
   historyPayments.value.reduce(
@@ -626,8 +632,8 @@ const historyTotalAmount = computed(() =>
 const historyPaidAmount = computed(() =>
   historyPayments.value.reduce((a, b) => a + paymentPaidAmount(b), 0),
 );
-const historyUnpaidAmount = computed(
-  () => historyTotalAmount.value - historyPaidAmount.value,
+const historyUnpaidAmount = computed(() =>
+  historyPayments.value.reduce((a, b) => a + Math.max(0, remainingAmount(b)), 0),
 );
 
 function selectTeacherForAtt(teacher) {
