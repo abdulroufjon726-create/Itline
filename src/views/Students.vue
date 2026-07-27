@@ -5,6 +5,7 @@ import { ref, onMounted, computed, watch } from "vue";
 import { useRouter } from "vue-router";
 import LessonsPlans from "./LessonsPlans.vue";
 import AppIcon from "@/components/AppIcon.vue";
+import PaymentCard from "@/components/PaymentCard.vue";
 
 const router = useRouter();
 const API = "https://itline-django-9s85.onrender.com/api";
@@ -49,6 +50,8 @@ const MONTHS = [
 // ─── State ────────────────────────────────────────────────────
 const students = ref([]);
 const payments = ref([]);
+const wallet = ref({ balance: 0, debt: 0, monthly_discount: 0 });
+const loadingWallet = ref(true);
 const groups = ref([]);
 const myGroup = ref(null);
 const activeTab = ref("students");
@@ -131,6 +134,20 @@ async function fetchPayments() {
   }
 }
 
+// O'quvchining virtual kartasi (ortiqcha balans + qarzdorlik)
+async function fetchWallet() {
+  if (!user.id) return;
+  loadingWallet.value = true;
+  try {
+    const res = await fetch(`${API}/students/${user.id}/wallet/`);
+    if (res.ok) wallet.value = await res.json();
+  } catch (e) {
+    console.error("wallet fetch error:", e);
+  } finally {
+    loadingWallet.value = false;
+  }
+}
+
 async function fetchGroups() {
   try {
     const res = await fetch(`${API}/groups/`);
@@ -178,7 +195,14 @@ onMounted(async () => {
   }
   fetchBonusStatuses();
   fetchAttendance();
+  if (!user.is_admin) fetchWallet();
 });
+
+// Oylik summadan chegirmani ayirib, sof to'lanishi kerak summani beradi
+const netDue = (p) =>
+  Math.max(0, (Number(p.amount_due) || 0) - (Number(p.discount) || 0));
+// Shu oy uchun qolgan (to'lanmagan) qism
+const monthRemaining = (p) => Math.max(0, netDue(p) - (Number(p.paid_amount) || 0));
 
 // ─── Coin actions ─────────────────────────────────────────────
 function togglePanel(id) {
@@ -364,6 +388,17 @@ const stageStyle = (stage) => {
           <span v-else-if="!user.is_admin && !myGroup" class="text-xs text-gray-300">Guruhga biriktirilmagan</span>
         </div>
       </div>
+    </div>
+
+    <!-- VIRTUAL KARTA — faqat o'quvchi uchun (kabinet yuqorisida) -->
+    <div v-if="!user.is_admin" class="mb-5">
+      <PaymentCard
+        :balance="wallet.balance"
+        :debt="wallet.debt"
+        :monthly-discount="wallet.monthly_discount"
+        :name="`${user.name || ''} ${user.surname || ''}`.trim()"
+        :loading="loadingWallet"
+      />
     </div>
 
     <!-- TABS -->
@@ -614,6 +649,16 @@ const stageStyle = (stage) => {
          PAYMENTS TAB
     ═══════════════════════════════════════ -->
     <div v-if="activeTab === 'payments'">
+      <!-- Virtual karta (tab yuqorisida ham) -->
+      <div class="mb-4">
+        <PaymentCard
+          :balance="wallet.balance"
+          :debt="wallet.debt"
+          :monthly-discount="wallet.monthly_discount"
+          :loading="loadingWallet"
+        />
+      </div>
+
       <div v-if="loadingPayments" class="text-center py-10 text-gray-400 text-sm">
         Yuklanmoqda...
       </div>
@@ -632,21 +677,55 @@ const stageStyle = (stage) => {
             <div class="text-right shrink-0">
               <span :class="[
                 'px-2.5 py-1 rounded-full text-xs font-medium',
-                payment.is_paid
+                monthRemaining(payment) <= 0
                   ? 'bg-green-100 text-green-700'
-                  : 'bg-red-100 text-red-600',
+                  : payment.paid_amount > 0
+                    ? 'bg-amber-100 text-amber-700'
+                    : 'bg-red-100 text-red-600',
               ]">{{
-                payment.is_paid ? "To'lov qilingan" : "To'lov qilinmagan"
+                monthRemaining(payment) <= 0
+                  ? "To'liq to'langan"
+                  : payment.paid_amount > 0
+                    ? "Qisman to'langan"
+                    : "To'lanmagan"
               }}</span>
               <p v-if="payment.paid_at" class="text-xs text-gray-400 mt-1.5">
                 {{ formatDate(payment.paid_at) }}
               </p>
             </div>
           </div>
-          <p class="text-xs text-gray-400 mb-1">To'lov summasi</p>
-          <p class="text-2xl sm:text-3xl font-bold">
-            {{ formatMoney(payment.amount_due) }}
-          </p>
+
+          <!-- Oylik summa (chegirma bo'lsa ustidan chizilgan holda) -->
+          <p class="text-xs text-gray-400 mb-1">Oylik to'lov</p>
+          <div class="flex items-baseline gap-2 flex-wrap">
+            <p class="text-2xl sm:text-3xl font-bold">
+              {{ formatMoney(netDue(payment)) }}
+            </p>
+            <span v-if="payment.discount > 0" class="text-sm text-gray-400 line-through">
+              {{ formatMoney(payment.amount_due) }}
+            </span>
+            <span v-if="payment.discount > 0"
+              class="text-xs px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 font-medium">
+              −{{ formatMoney(payment.discount) }} chegirma
+            </span>
+          </div>
+
+          <!-- To'langan / qolgan -->
+          <div class="grid grid-cols-2 gap-3 mt-4 pt-3 border-t border-gray-100">
+            <div>
+              <p class="text-[11px] text-gray-400 mb-0.5">To'langan</p>
+              <p class="text-sm font-semibold text-emerald-600 tabular-nums">
+                {{ formatMoney(payment.paid_amount) }}
+              </p>
+            </div>
+            <div>
+              <p class="text-[11px] text-gray-400 mb-0.5">Qolgan</p>
+              <p class="text-sm font-semibold tabular-nums"
+                :class="monthRemaining(payment) > 0 ? 'text-red-500' : 'text-emerald-600'">
+                {{ formatMoney(monthRemaining(payment)) }}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
       <div v-else class="text-center py-10 text-gray-400 text-sm">

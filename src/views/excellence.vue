@@ -20,6 +20,9 @@ if (!user || !(user.is_excellence || user.role === "manager")) {
   router.push("/login");
 }
 
+// Chegirma berish faqat menejer huquqi — boshqalar faqat ko'radi
+const isManager = user?.role === "manager";
+
 function logout() {
   localStorage.removeItem("user");
   router.push("/login");
@@ -314,7 +317,7 @@ const groupedPayments = computed(() => {
     }
     const sec = map.get(name);
     sec.payments.push(p);
-    sec.totalDue += Number(paymentAmountDue(p)) || 0;
+    sec.totalDue += paymentNetDue(p);
     sec.totalPaid += paymentPaidAmount(p);
   }
   const arr = [...map.values()].map((s) => ({
@@ -768,9 +771,19 @@ function paymentAmountDue(payment) {
   );
 }
 
-// Qolgan = Oylik to'lov (default summa) - hozirgacha to'langan summa
+// Shu oyga berilgan chegirma
+function paymentDiscount(payment) {
+  return Number(payment.discount) || 0;
+}
+
+// Chegirmadan keyingi sof to'lov (0 dan past bo'lmaydi)
+function paymentNetDue(payment) {
+  return Math.max(0, (Number(paymentAmountDue(payment)) || 0) - paymentDiscount(payment));
+}
+
+// Qolgan = sof to'lov (chegirmadan keyin) - hozirgacha to'langan summa
 function remainingAmount(payment) {
-  const due = Number(paymentAmountDue(payment)) || 0;
+  const due = paymentNetDue(payment);
   const paid = Number(paymentPaidAmount(payment)) || 0;
   return due - paid;
 }
@@ -826,6 +839,7 @@ async function savePaymentRow(payment) {
         is_checked: shouldBePaid,
         amount_due: payment.amount_due ?? paymentAmountDue(payment),
         paid_amount: payment.paid_amount ?? 0,
+        discount: Number(payment.discount) || 0,
       }),
     });
 
@@ -833,6 +847,11 @@ async function savePaymentRow(payment) {
     payment.is_paid = data.is_paid ?? shouldBePaid;
     payment.is_checked = data.is_checked ?? shouldBePaid;
     payment.paid_amount = data.paid_amount ?? payment.paid_amount;
+    if (data.discount !== undefined) payment.discount = data.discount;
+    // Kartani (barcha oylar bo'yicha) — o'sha o'quvchining hamma qatorlarida yangilaymiz
+    if (data.wallet_balance !== undefined) {
+      syncWallet(payment.student_id, data.wallet_balance, data.wallet_debt);
+    }
 
     if (!res.ok) {
       throw new Error("Confirm endpoint failed");
@@ -852,6 +871,7 @@ async function savePaymentRow(payment) {
         body: JSON.stringify({
           amount_due: payment.amount_due ?? paymentAmountDue(payment),
           paid_amount: payment.paid_amount,
+          discount: Number(payment.discount) || 0,
           is_checked: shouldBePaid,
           is_paid: shouldBePaid,
         }),
@@ -859,10 +879,35 @@ async function savePaymentRow(payment) {
       const fallbackData = await fallbackRes.json().catch(() => ({}));
       payment.is_paid = fallbackData.is_paid ?? shouldBePaid;
       payment.is_checked = fallbackData.is_checked ?? shouldBePaid;
+      if (fallbackData.discount !== undefined) payment.discount = fallbackData.discount;
+      if (fallbackData.wallet_balance !== undefined) {
+        syncWallet(payment.student_id, fallbackData.wallet_balance, fallbackData.wallet_debt);
+      }
     } catch (fallbackError) {
       console.error("To'lovni saqlashda xatolik:", fallbackError);
     }
   }
+}
+
+// Bir o'quvchining kartasi o'zgarganda — uning barcha to'lov qatorlarida
+// (turli oylar) wallet_balance/wallet_debt ni yangilab qo'yamiz
+function syncWallet(studentId, balance, debt) {
+  for (const p of payments.value) {
+    if (p.student_id === studentId) {
+      p.wallet_balance = balance;
+      p.wallet_debt = debt;
+    }
+  }
+}
+
+// Chegirmani xavfsiz saqlash: manfiy yoki oylik summadan katta bo'lmasin
+function onDiscountChange(payment) {
+  let d = Number(payment.discount);
+  if (isNaN(d) || d < 0) d = 0;
+  const max = Number(paymentAmountDue(payment)) || 0;
+  if (d > max) d = max;
+  payment.discount = d;
+  savePaymentRow(payment);
 }
 function addMarkError(...fields) {
   fields.forEach((f) => addErrorFields.value.add(f));
@@ -1216,6 +1261,9 @@ const inputClass = (field) => [
               <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">
                 Oylik to'lov
               </th>
+              <th v-if="isManager" class="text-left px-4 py-3 text-xs text-gray-400 font-medium">
+                Chegirma
+              </th>
               <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">
                 Davomat to'lovi
               </th>
@@ -1244,7 +1292,7 @@ const inputClass = (field) => [
               <!-- Guruh sarlavhasi (bosilganда ochiladi/yopiladi) -->
               <tr v-if="section.name" :key="'h-' + section.key" @click="toggleGroup(section.key)"
                 class="bg-blue-900/20 border-y border-white/10 cursor-pointer hover:bg-blue-800/10 transition select-none">
-                <td colspan="12" class="px-4 py-2.5">
+                <td :colspan="isManager ? 13 : 12" class="px-4 py-2.5">
                   <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
                     <div class="flex items-center gap-2 font-semibold text-gray-700">
                       <AppIcon name="chevron-down" class="text-gray-400 transition-transform duration-200"
@@ -1274,7 +1322,22 @@ const inputClass = (field) => [
               <template v-if="isSectionOpen(section)">
                 <tr v-for="payment in section.payments" :key="'p-' + payment.id"
                   class="acc-row border-b border-white/10 hover:bg-blue-500/10 transition">
-                  <td class="px-4 py-3 font-medium">{{ payment.student_name }}</td>
+                  <td class="px-4 py-3 font-medium">
+                    <div>{{ payment.student_name }}</div>
+                    <!-- Virtual karta: barcha oylar bo'yicha balans/qarz -->
+                    <div class="mt-1 flex flex-wrap gap-1">
+                      <span v-if="payment.wallet_balance > 0"
+                        class="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 font-medium"
+                        title="Kartada qolgan (ortiqcha) pul">
+                        Karta: +{{ money(payment.wallet_balance) }}
+                      </span>
+                      <span v-if="payment.wallet_debt > 0"
+                        class="text-[10px] px-1.5 py-0.5 rounded-full bg-rose-50 text-rose-600 font-medium"
+                        title="Umumiy qarzdorlik">
+                        Qarz: −{{ money(payment.wallet_debt) }}
+                      </span>
+                    </div>
+                  </td>
                   <td class="px-4 py-3 text-gray-500">
                     {{ payment.student_phone }}
                   </td>
@@ -1284,7 +1347,18 @@ const inputClass = (field) => [
                   <td class="px-4 py-3 text-gray-600">
                     {{ courseLabel(payment) }}
                   </td>
-                  <td class="px-4 py-3">{{ money(paymentAmountDue(payment)) }}</td>
+                  <td class="px-4 py-3">
+                    <div>{{ money(paymentNetDue(payment)) }}</div>
+                    <div v-if="paymentDiscount(payment) > 0" class="text-[11px] text-gray-400 line-through">
+                      {{ money(paymentAmountDue(payment)) }}
+                    </div>
+                  </td>
+                  <td v-if="isManager" class="px-4 py-3">
+                    <input type="number" min="0" step="1000" v-model.number="payment.discount"
+                      @keydown="blockNegativeKey($event)" @change="onDiscountChange(payment)" placeholder="0"
+                      class="border border-white/10 rounded-lg px-2 py-1 w-24 text-sm outline-none focus:border-white/10"
+                      title="Shu oy uchun chegirma" />
+                  </td>
                   <td class="px-4 py-3">
                     <template v-if="payment.total_lessons">
                       <div class="text-[11px] text-gray-400">

@@ -91,6 +91,7 @@
                 <th class="px-3 py-2.5 font-medium">Telefon</th>
                 <th class="px-3 py-2.5 font-medium">Ustoz</th>
                 <th class="px-3 py-2.5 font-medium">Kunlar</th>
+                <th class="px-3 py-2.5 font-medium">Karta / Chegirma</th>
                 <th v-if="canManage" class="px-3 py-2.5 font-medium w-10 text-right">
                   Amal
                 </th>
@@ -141,6 +142,57 @@
                 </td>
                 <td class="px-3 py-2 text-slate-400 text-xs">
                   {{ s.schedule === "odd" ? "Du-Chor-Ju" : s.schedule === "daily" ? "Har kuni" : "Se-Pay-Sha" }}
+                </td>
+                <td class="px-3 py-2" @click.stop>
+                  <!-- Tahrir rejimi -->
+                  <div v-if="editingDiscountId === s.id" class="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min="0"
+                      step="1000"
+                      v-model.number="discountDraft"
+                      class="w-24 border border-slate-200 rounded-lg px-2 py-1 text-xs outline-none focus:border-indigo-300"
+                      placeholder="0"
+                    />
+                    <button
+                      @click="saveDiscount(s)"
+                      :disabled="savingDiscount"
+                      class="px-2 py-1 rounded-lg bg-slate-900 text-white text-xs disabled:opacity-40"
+                    >
+                      Saqlash
+                    </button>
+                    <button
+                      @click="cancelDiscount"
+                      class="px-2 py-1 rounded-lg border border-slate-200 text-slate-500 text-xs"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <!-- Ko'rinish rejimi -->
+                  <div v-else class="flex flex-wrap items-center gap-1.5">
+                    <span
+                      v-if="s.wallet_balance > 0"
+                      class="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 font-medium whitespace-nowrap"
+                      title="Kartada qolgan pul"
+                    >+{{ money(s.wallet_balance) }}</span>
+                    <span
+                      v-if="s.wallet_debt > 0"
+                      class="text-[10px] px-1.5 py-0.5 rounded-full bg-rose-50 text-rose-600 font-medium whitespace-nowrap"
+                      title="Qarzdorlik"
+                    >−{{ money(s.wallet_debt) }}</span>
+                    <span
+                      v-if="!s.wallet_balance && !s.wallet_debt"
+                      class="text-[11px] text-slate-300"
+                    >—</span>
+                    <button
+                      v-if="isManager"
+                      @click="openDiscount(s)"
+                      class="text-[11px] text-indigo-500 hover:underline whitespace-nowrap"
+                      :title="s.monthly_discount ? 'Oylik chegirma: ' + money(s.monthly_discount) : 'Doimiy oylik chegirma qo\'shish'"
+                    >
+                      {{ s.monthly_discount > 0 ? "Chegirma: " + money(s.monthly_discount) : "Chegirma +" }}
+                    </button>
+                  </div>
                 </td>
                 <td v-if="canManage" class="px-3 py-2 text-right" @click.stop>
                   <button
@@ -195,6 +247,35 @@
                 class="text-indigo-500 tabular-nums text-[13px]"
                 >{{ s.phone }}</a
               >
+              <!-- Karta / chegirma -->
+              <div class="flex flex-wrap items-center gap-1.5 pt-1" @click.stop>
+                <span
+                  v-if="s.wallet_balance > 0"
+                  class="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 font-medium"
+                >Karta +{{ money(s.wallet_balance) }}</span>
+                <span
+                  v-if="s.wallet_debt > 0"
+                  class="text-[10px] px-1.5 py-0.5 rounded-full bg-rose-50 text-rose-600 font-medium"
+                >Qarz −{{ money(s.wallet_debt) }}</span>
+                <template v-if="editingDiscountId === s.id">
+                  <input
+                    type="number"
+                    min="0"
+                    step="1000"
+                    v-model.number="discountDraft"
+                    class="w-20 border border-slate-200 rounded-lg px-2 py-0.5 text-xs outline-none"
+                    placeholder="0"
+                  />
+                  <button @click="saveDiscount(s)" :disabled="savingDiscount"
+                    class="px-2 py-0.5 rounded-lg bg-slate-900 text-white text-[11px] disabled:opacity-40">Saqlash</button>
+                  <button @click="cancelDiscount" class="px-2 py-0.5 rounded-lg border border-slate-200 text-slate-500 text-[11px]">×</button>
+                </template>
+                <button
+                  v-else-if="isManager"
+                  @click="openDiscount(s)"
+                  class="text-[11px] text-indigo-500 hover:underline"
+                >{{ s.monthly_discount > 0 ? "Chegirma: " + money(s.monthly_discount) : "Chegirma +" }}</button>
+              </div>
             </div>
             <button
               v-if="canManage"
@@ -283,6 +364,8 @@ const user = currentUser();
 const canManage = computed(
   () => !!(user && (user.is_admin || user.role === "manager")),
 );
+// Chegirma berish faqat menejer huquqi (admin/ustoz emas)
+const isManager = computed(() => user?.role === "manager");
 
 const teachers = ref([]);
 const students = ref([]);
@@ -297,6 +380,49 @@ const toast = ref("");
 const unassignedCount = ref(0);
 const deletingId = ref(null);
 const bulkDeleting = ref(false);
+
+// Doimiy oylik chegirma tahriri
+const editingDiscountId = ref(null);
+const discountDraft = ref(0);
+const savingDiscount = ref(false);
+
+const money = (v) => Number(v || 0).toLocaleString("uz-UZ") + " so'm";
+
+function openDiscount(s) {
+  editingDiscountId.value = s.id;
+  discountDraft.value = Number(s.monthly_discount) || 0;
+}
+
+function cancelDiscount() {
+  editingDiscountId.value = null;
+  discountDraft.value = 0;
+}
+
+async function saveDiscount(s) {
+  if (!isManager.value) return;
+  let d = Number(discountDraft.value);
+  if (isNaN(d) || d < 0) d = 0;
+  savingDiscount.value = true;
+  try {
+    const { ok, data } = await apiSend(`/students/update/${s.id}/`, "PATCH", {
+      monthly_discount: d,
+    });
+    if (!ok) {
+      say(data.error || "Chegirma saqlanmadi");
+      return;
+    }
+    s.monthly_discount = data.monthly_discount ?? d;
+    if (data.wallet_balance !== undefined) s.wallet_balance = data.wallet_balance;
+    if (data.wallet_debt !== undefined) s.wallet_debt = data.wallet_debt;
+    editingDiscountId.value = null;
+    say("Doimiy oylik chegirma saqlandi");
+  } catch (e) {
+    console.error("save discount:", e);
+    say("Tarmoq xatosi");
+  } finally {
+    savingDiscount.value = false;
+  }
+}
 
 const totalStudents = computed(() =>
   teachers.value.reduce((a, t) => a + t.students_count, 0)
