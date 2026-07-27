@@ -606,17 +606,15 @@ const historyUnpaidAmount = computed(
   () => historyTotalAmount.value - historyPaidAmount.value,
 );
 
-async function selectTeacherForAtt(teacher) {
+function selectTeacherForAtt(teacher) {
   selectedTeacherForAtt.value = teacher;
-  selectedStudent.value = null;
-  studentMonthAttendance.value = [];
-  loadingAtt.value = true;
-  try {
-    const res = await fetch(`${API}/students/?teacher_id=${teacher.id}`);
-    attStudents.value = await res.json();
-  } finally {
-    loadingAtt.value = false;
-  }
+}
+
+// Ustoz dropdown'idan tanlanganda
+function onAttTeacherChange(e) {
+  const id = Number(e.target.value);
+  const t = teachers.value.find((x) => x.id === id);
+  if (t) selectTeacherForAtt(t);
 }
 
 async function selectStudentForAtt(student) {
@@ -1699,24 +1697,25 @@ const inputClass = (field) => [
 
     <!-- ══════════ DAVOMAT ══════════ -->
     <div v-if="activeTab === 'attendance'">
-      <!-- Ustoz tanlash -->
-      <div class="flex flex-wrap gap-2 mb-4">
-        <button
-          v-for="teacher in teachers"
-          :key="teacher.id"
-          @click="selectTeacherForAtt(teacher)"
-          :class="[
-            'px-3.5 py-1.5 rounded-full text-sm border transition whitespace-nowrap flex items-center gap-1.5',
-            selectedTeacherForAtt?.id === teacher.id
-              ? 'bg-gray-900 text-white border-gray-900'
-              : 'border-gray-200 text-gray-500 bg-white hover:bg-gray-50',
-          ]"
-        >
-          <AppIcon name="teacher" /> {{ teacher.name }}
-        </button>
-        <p v-if="teachers.length === 0" class="text-sm text-gray-400 py-2">
-          Yuklanmoqda...
-        </p>
+      <!-- Ustoz tanlash (dropdown) -->
+      <div class="mb-4">
+        <label class="block text-xs font-medium text-gray-400 mb-1.5">Ustoz</label>
+        <div class="relative w-full sm:w-72">
+          <select
+            :value="selectedTeacherForAtt?.id || ''"
+            @change="onAttTeacherChange($event)"
+            class="w-full appearance-none border border-gray-200 bg-white rounded-xl pl-3 pr-9 py-2.5 text-sm outline-none focus:border-indigo-300 transition cursor-pointer"
+          >
+            <option value="" disabled>Ustozni tanlang…</option>
+            <option v-for="teacher in teachers" :key="teacher.id" :value="teacher.id">
+              {{ teacher.name }}
+            </option>
+          </select>
+          <AppIcon
+            name="chevron-down"
+            class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+          />
+        </div>
       </div>
 
       <div

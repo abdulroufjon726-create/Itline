@@ -34,9 +34,9 @@ const loading = ref(false);
 const savingId = ref(null);
 
 const STATUSES = [
-  { key: "present", label: "Keldi", dot: "bg-emerald-500", active: "bg-emerald-500 text-white shadow-sm shadow-emerald-200" },
-  { key: "late", label: "Kech", dot: "bg-amber-400", active: "bg-amber-400 text-white shadow-sm shadow-amber-200" },
-  { key: "absent", label: "Kelmadi", dot: "bg-rose-500", active: "bg-rose-500 text-white shadow-sm shadow-rose-200" },
+  { key: "present", label: "Keldi", dot: "bg-emerald-500", active: "bg-emerald-500 text-white" },
+  { key: "late", label: "Kech", dot: "bg-amber-400", active: "bg-amber-400 text-white" },
+  { key: "absent", label: "Kelmadi", dot: "bg-rose-500", active: "bg-rose-500 text-white" },
 ];
 const cellStyle = { present: "bg-emerald-500", late: "bg-amber-400", absent: "bg-rose-500" };
 
@@ -200,21 +200,22 @@ onBeforeUnmount(stopPolling);
 
 <template>
   <div>
-    <!-- Guruhlar -->
-    <div v-if="groups.length" class="flex flex-wrap gap-2 mb-4">
-      <button
-        v-for="g in groups"
-        :key="g.id"
-        @click="selectGroup(g.id)"
-        :class="[
-          'px-3.5 py-1.5 rounded-full text-sm border transition whitespace-nowrap flex items-center gap-1.5',
-          selectedGroupId === g.id
-            ? 'bg-gray-900 text-white border-gray-900'
-            : 'border-gray-200 text-gray-500 bg-white hover:bg-gray-50',
-        ]"
-      >
-        <AppIcon name="groups" /> {{ g.name }}
-      </button>
+    <!-- Guruh tanlash (dropdown) -->
+    <div v-if="groups.length" class="mb-4">
+      <label class="block text-xs font-medium text-gray-400 mb-1.5">Guruh</label>
+      <div class="relative w-full sm:w-72">
+        <select
+          v-model="selectedGroupId"
+          class="w-full appearance-none border border-gray-200 bg-white rounded-xl pl-3 pr-9 py-2.5 text-sm outline-none focus:border-indigo-300 transition cursor-pointer"
+        >
+          <option :value="null" disabled>Guruhni tanlang…</option>
+          <option v-for="g in groups" :key="g.id" :value="g.id">{{ g.name }}</option>
+        </select>
+        <AppIcon
+          name="chevron-down"
+          class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+        />
+      </div>
     </div>
     <p v-else class="text-sm text-gray-400 py-6 text-center">Guruh yo'q</p>
 
@@ -224,35 +225,23 @@ onBeforeUnmount(stopPolling);
         <div class="flex flex-col sm:flex-row sm:items-center gap-3">
           <!-- Rejim segmenti -->
           <div class="flex bg-gray-50 rounded-xl p-1 w-full sm:w-auto">
-            <button
-              @click="mode = 'day'"
+            <button @click="mode = 'day'"
               :class="mode === 'day' ? 'bg-gray-900 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'"
-              class="flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-medium transition flex items-center justify-center gap-1.5"
-            >
+              class="flex-1 sm:flex-none px-4 py-1 rounded-lg text-sm font-medium transition flex items-center justify-center gap-1.5">
               <AppIcon name="attendance" /> Kunlik
             </button>
-            <button
-              @click="mode = 'month'"
+            <button @click="mode = 'month'"
               :class="mode === 'month' ? 'bg-gray-900 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'"
-              class="flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-medium transition flex items-center justify-center gap-1.5"
-            >
+              class="flex-1 sm:flex-none px-4 py-1 rounded-lg text-sm font-medium transition flex items-center justify-center gap-1.5">
               <AppIcon name="chart" /> Oylik
             </button>
           </div>
 
           <!-- Sana yoki oy -->
-          <input
-            v-if="mode === 'day'"
-            type="date"
-            v-model="date"
-            class="w-full sm:w-auto border border-gray-200 bg-gray-50 rounded-xl px-3 py-2 text-sm outline-none focus:border-indigo-300 transition"
-          />
-          <input
-            v-else
-            type="month"
-            v-model="month"
-            class="w-full sm:w-auto border border-gray-200 bg-gray-50 rounded-xl px-3 py-2 text-sm outline-none focus:border-indigo-300 transition"
-          />
+          <input v-if="mode === 'day'" type="date" v-model="date"
+            class="w-full sm:w-auto border border-gray-200 bg-gray-50 rounded-xl px-3 py-2 text-sm outline-none focus:border-indigo-300 transition" />
+          <input v-else type="month" v-model="month"
+            class="w-full sm:w-auto border border-gray-200 bg-gray-50 rounded-xl px-3 py-2 text-sm outline-none focus:border-indigo-300 transition" />
 
           <span class="text-xs text-gray-400 flex items-center gap-1.5 sm:ml-auto">
             <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -283,24 +272,18 @@ onBeforeUnmount(stopPolling);
 
         <!-- O'quvchilar -->
         <div class="space-y-2">
-          <div
-            v-for="row in dayRows"
-            :key="row.attendance_id"
-            class="bg-white border border-gray-100 rounded-2xl p-3 sm:p-3.5 shadow-sm flex flex-col sm:flex-row sm:items-center gap-3"
-          >
+          <div v-for="row in dayRows" :key="row.attendance_id"
+            class="bg-white border border-gray-100 rounded-2xl p-3 sm:p-3.5 shadow-sm flex flex-col sm:flex-row sm:items-center gap-3">
             <div class="flex items-center gap-3 min-w-0 flex-1">
-              <div
-                class="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-                :class="avatarClass(row.student_id)"
-              >
+              <div class="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                :class="avatarClass(row.student_id)">
                 {{ initials(row.name) }}
               </div>
               <div class="min-w-0">
                 <p class="text-sm font-semibold text-gray-800 truncate">{{ row.name }}</p>
                 <p class="text-xs mt-0.5 flex items-center gap-1">
                   <span
-                    :class="absentOf(row.student_id) >= absentWarn ? 'text-rose-600 font-semibold' : 'text-gray-400'"
-                  >
+                    :class="absentOf(row.student_id) >= absentWarn ? 'text-rose-600 font-semibold' : 'text-gray-400'">
                     Bu oy: {{ absentOf(row.student_id) }} marta kelmagan
                   </span>
                 </p>
@@ -309,17 +292,12 @@ onBeforeUnmount(stopPolling);
 
             <!-- Status segmenti -->
             <div class="flex gap-1 bg-gray-50 rounded-full p-1 shrink-0 w-full sm:w-auto">
-              <button
-                v-for="s in STATUSES"
-                :key="s.key"
-                @click="setStatus(row, s.key)"
-                :disabled="!canMark || savingId === row.attendance_id"
-                :class="[
+              <button v-for="s in STATUSES" :key="s.key" @click="setStatus(row, s.key)"
+                :disabled="!canMark || savingId === row.attendance_id" :class="[
                   'flex-1 sm:flex-none px-3 py-1.5 rounded-full text-xs font-medium transition',
                   row.status === s.key ? s.active : 'text-gray-400 hover:text-gray-600',
                   savingId === row.attendance_id ? 'opacity-50 cursor-not-allowed' : '',
-                ]"
-              >
+                ]">
                 {{ s.label }}
               </button>
             </div>
@@ -332,55 +310,43 @@ onBeforeUnmount(stopPolling);
 
       <!-- ══════════ OYLIK ══════════ -->
       <template v-else>
-        <div v-if="!monthDates.length" class="text-center py-10 text-gray-400 text-sm bg-white border border-gray-100 rounded-2xl">
+        <div v-if="!monthDates.length"
+          class="text-center py-10 text-gray-400 text-sm bg-white border border-gray-100 rounded-2xl">
           Bu oyda dars belgilanmagan
         </div>
-        <div v-else class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+        <div v-else class="bg-white border border-gray-100 rounded-2xl  overflow-hidden">
           <div class="overflow-x-auto">
             <table class="w-full text-sm border-collapse">
               <thead>
                 <tr class="bg-gray-50 text-left text-[11px] uppercase tracking-wider text-gray-400">
                   <th class="px-3 py-3 font-medium sticky left-0 bg-gray-50 z-10">O'quvchi</th>
-                  <th
-                    v-for="d in monthDates"
-                    :key="d"
-                    class="px-2 py-3 font-medium text-center whitespace-nowrap"
-                  >
+                  <th v-for="d in monthDates" :key="d" class="px-2 py-3 font-medium text-center whitespace-nowrap">
                     {{ fmtDay(d) }}
                   </th>
                   <th class="px-3 py-3 font-medium text-center whitespace-nowrap">Kelmagan</th>
                 </tr>
               </thead>
               <tbody>
-                <tr
-                  v-for="row in monthRows"
-                  :key="row.student_id"
-                  class="border-t border-gray-50 hover:bg-gray-50/50 transition"
-                >
+                <tr v-for="row in monthRows" :key="row.student_id"
+                  class="border-t border-white/10 transition">
                   <td class="px-3 py-2.5 font-medium text-gray-700 sticky left-0 bg-white z-10 whitespace-nowrap">
                     <div class="flex items-center gap-2">
-                      <div
-                        class="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
-                        :class="avatarClass(row.student_id)"
-                      >
+                      <div class="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
+                        :class="avatarClass(row.student_id)">
                         {{ initials(row.name) }}
                       </div>
                       <span class="truncate max-w-[140px]">{{ row.name }}</span>
                     </div>
                   </td>
                   <td v-for="d in monthDates" :key="d" class="px-2 py-2.5 text-center">
-                    <button
-                      @click="goToDate(d)"
-                      :title="d"
-                      class="w-3.5 h-3.5 rounded-full inline-block align-middle hover:ring-2 hover:ring-gray-300 transition"
-                      :class="cellStyle[recStatus(row, d)] || 'bg-gray-200'"
-                    ></button>
+                    <button @click="goToDate(d)" :title="d"
+                      class="w-3.5 h-3.5 rounded-full inline-block align-middle hover:ring-2 transition"
+                      :class="cellStyle[recStatus(row, d)] || 'bg-gray-200'"></button>
                   </td>
                   <td class="px-3 py-2.5 text-center">
                     <span
                       class="inline-flex items-center justify-center min-w-[1.75rem] px-2 py-0.5 rounded-full text-xs font-bold tabular-nums"
-                      :class="row.absent >= absentWarn ? 'bg-rose-100 text-rose-600' : 'bg-gray-100 text-gray-500'"
-                    >
+                      :class="row.absent >= absentWarn ? ' text-rose-600' : ' text-gray-500'">
                       {{ row.absent }}
                     </span>
                   </td>
@@ -390,9 +356,11 @@ onBeforeUnmount(stopPolling);
           </div>
         </div>
         <p class="text-[11px] text-gray-400 mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> keldi</span>
+          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+            keldi</span>
           <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span> kech</span>
-          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> kelmadi</span>
+          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+            kelmadi</span>
           <span class="text-gray-300">— kunni tahrirlash uchun nuqtaga bosing</span>
         </p>
       </template>
