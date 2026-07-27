@@ -31,18 +31,38 @@ function logout() {
 const activeTab = ref("payments");
 
 // Panel bo'limlari (ikonka nomlari AppIcon.vue dagi ro'yxatdan)
-const TABS = [
-  { key: "payments", icon: "payment", label: "Payments" },
-  { key: "fee", icon: "briefcase", label: "Courses" },
-  { key: "history", icon: "chart", label: "History" },
-  { key: "attendance", icon: "attendance", label: "Attendance" },
-  { key: "add", icon: "user-plus", label: "Add" },
-  { key: "mahsulotlar", icon: "shop", label: "Products" },
-  { key: "orders", icon: "orders", label: "Orders" },
-  { key: "settings", icon: "coin", label: "Coin Settings" },
-  { key: "groups", icon: "groups", label: "Groups" },
-  { key: "news", icon: "news", label: "News" },
+// Asosiy (eng ko'p ishlatiladigan) tablar — doim ko'rinadi
+const PRIMARY_TABS = [
+  { key: "payments", icon: "payment", label: "To'lovlar" },
+  { key: "attendance", icon: "attendance", label: "Davomat" },
+  { key: "groups", icon: "groups", label: "Guruhlar" },
+  { key: "add", icon: "user-plus", label: "Qo'shish" },
 ];
+// Qolganlari "Ko'proq" menyusida — navigatsiya toza bo'lishi uchun
+const MORE_TABS = [
+  { key: "fee", icon: "briefcase", label: "Kurslar" },
+  { key: "history", icon: "chart", label: "Tarix" },
+  { key: "mahsulotlar", icon: "shop", label: "Mahsulotlar" },
+  { key: "orders", icon: "orders", label: "Buyurtmalar" },
+  { key: "settings", icon: "coin", label: "Coin sozlamalari" },
+  { key: "news", icon: "news", label: "Yangiliklar" },
+];
+// Boshqa sahifalarga havolalar (tab emas)
+const MORE_LINKS = [
+  { to: "/finance", icon: "money", label: "Moliya" },
+  { to: "/database", icon: "database", label: "Baza" },
+  { to: "/manager/students", icon: "manager", label: "Menejer paneli" },
+];
+// "Ko'proq" menyusi ochiqmi
+const showMore = ref(false);
+// Menyudagi tablardan biri tanlanganmi (Ko'proq tugmasini yoritish uchun)
+const isMoreActive = computed(() =>
+  MORE_TABS.some((t) => t.key === activeTab.value),
+);
+function pickTab(key) {
+  activeTab.value = key;
+  showMore.value = false;
+}
 
 const teachers = ref([]);
 const stagePrices = ref([]);
@@ -1136,9 +1156,9 @@ const inputClass = (field) => [
       </button>
     </div>
 
-    <!-- Tablar -->
-    <div class="flex gap-2 mb-6 overflow-x-auto pb-1">
-      <button v-for="tab in TABS" :key="tab.key" @click="activeTab = tab.key" :class="[
+    <!-- Tablar: asosiylari ko'rinadi, qolganlari "Ko'proq" menyusida -->
+    <div class="flex gap-2 mb-6 pb-1 flex-wrap items-center">
+      <button v-for="tab in PRIMARY_TABS" :key="tab.key" @click="activeTab = tab.key" :class="[
         'cursor-pointer px-4 py-2 rounded-full text-sm border transition whitespace-nowrap flex items-center gap-1.5',
         activeTab === tab.key
           ? 'bg-gray-900 text-white border-gray-900'
@@ -1147,21 +1167,39 @@ const inputClass = (field) => [
         <AppIcon :name="tab.icon" />
         {{ tab.label }}
       </button>
-      <router-link
-        class="px-4 py-2 rounded-full text-sm border transition whitespace-nowrap border-gray-200 text-gray-500 hover:bg-gray-50"
-        to="/finance">
-        <AppIcon name="money" /> finance
-      </router-link>
-      <router-link
-        class="px-4 py-2 rounded-full text-sm border transition whitespace-nowrap border-gray-200 text-gray-500 hover:bg-gray-50"
-        to="/database">
-        <AppIcon name="database" /> Baza
-      </router-link>
-      <router-link
-        class="px-4 py-2 rounded-full text-sm border transition whitespace-nowrap border-gray-200 text-gray-500 hover:bg-gray-50"
-        to="/manager/students">
-        <AppIcon name="manager" /> Menejer paneli
-      </router-link>
+
+      <!-- Ko'proq menyusi -->
+      <div class="relative">
+        <button @click="showMore = !showMore" :class="[
+          'cursor-pointer px-4 py-2 rounded-full text-sm border transition whitespace-nowrap flex items-center gap-1.5',
+          isMoreActive || showMore
+            ? 'bg-gray-900 text-white border-gray-900'
+            : 'border-gray-200 text-gray-500 hover:bg-gray-50',
+        ]">
+          <AppIcon name="settings" /> Ko'proq
+          <AppIcon name="chevron-down" class="transition-transform" :class="showMore ? 'rotate-180' : ''" />
+        </button>
+
+        <!-- Menyu ochilganda fon (tashqariga bosilsa yopiladi) -->
+        <div v-if="showMore" class="fixed inset-0 z-20" @click="showMore = false"></div>
+
+        <div v-if="showMore"
+          class="absolute left-0 mt-2 w-56 bg-white border border-gray-100 rounded-2xl shadow-lg z-30 p-1.5">
+          <button v-for="tab in MORE_TABS" :key="tab.key" @click="pickTab(tab.key)" :class="[
+            'w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-left transition',
+            activeTab === tab.key
+              ? 'bg-gray-900 text-white'
+              : 'text-gray-600 hover:bg-gray-50',
+          ]">
+            <AppIcon :name="tab.icon" /> {{ tab.label }}
+          </button>
+          <div class="my-1.5 border-t border-gray-100"></div>
+          <router-link v-for="l in MORE_LINKS" :key="l.to" :to="l.to" @click="showMore = false"
+            class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-left text-gray-600 hover:bg-gray-50 transition">
+            <AppIcon :name="l.icon" /> {{ l.label }}
+          </router-link>
+        </div>
+      </div>
     </div>
 
     <!-- ══════════ TO'LOVLAR ══════════ -->
