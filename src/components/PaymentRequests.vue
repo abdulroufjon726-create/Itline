@@ -7,6 +7,7 @@ import AppIcon from "@/components/AppIcon.vue";
  * ko'radi. Qabul qilganda miqdor + oy + sana kiritadi -> to'lov yoziladi,
  * chek rasmi o'chadi. Rad etsa ham rasm o'chadi.
  */
+const emit = defineEmits(["accepted"]);
 const API = "https://itline-django-9s85.onrender.com/api";
 
 const today = new Date().toISOString().slice(0, 10);
@@ -112,6 +113,8 @@ async function confirmAccept(r) {
     say("To'lov qabul qilindi");
     cancelAccept(r.id);
     await loadList(true);
+    // Manager panelidagi To'lovlar ro'yxatini yangilaymiz
+    emit("accepted", { student_id: r.student_id, month: f.month });
   } catch (e) {
     say("Tarmoq xatosi");
   } finally {

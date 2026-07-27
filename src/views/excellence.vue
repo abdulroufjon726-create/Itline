@@ -52,6 +52,13 @@ async function loadPendingReqCount() {
     /* jim */
   }
 }
+
+// Manager to'lov so'rovini qabul qilgach — To'lovlar ro'yxatini yangilaymiz
+async function onPaymentAccepted(payload) {
+  if (payload?.month) selectedMonth.value = payload.month;
+  await fetchPayments();
+  loadPendingReqCount();
+}
 // Qolganlari "Ko'proq" menyusida — navigatsiya toza bo'lishi uchun
 const MORE_TABS = [
   { key: "fee", icon: "briefcase", label: "Kurslar" },
@@ -1718,7 +1725,7 @@ const inputClass = (field) => [
 
     <!-- ══════════ TO'LOV SO'ROVLARI (chek) ══════════ -->
     <div v-if="activeTab === 'payreq'">
-      <PaymentRequests />
+      <PaymentRequests @accepted="onPaymentAccepted" />
     </div>
 
     <!-- ══════════ DAVOMAT ══════════ -->
