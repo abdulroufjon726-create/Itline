@@ -1,59 +1,32 @@
 <template>
   <div class="min-h-screen bg-slate-50 p-4 sm:p-6 font-sans pb-28">
-    <ManagerNav
-      title="O'quvchilar va ustozlar"
-      subtitle="Ustozni tanlab, unga tegishli o'quvchilarni ko'ring va boshqa ustozga o'tkazing"
-    />
+    <ManagerNav title="O'quvchilar va ustozlar"
+      subtitle="Ustozni tanlab, unga tegishli o'quvchilarni ko'ring va boshqa ustozga o'tkazing" />
 
     <!-- ══════════ USTOZ TANLASH ══════════ -->
     <div class="flex flex-wrap gap-2 mb-4">
-      <button
-        @click="selectTeacher('')"
-        :class="chip(activeTeacher === '')"
-      >
+      <button @click="selectTeacher('')" :class="chip(activeTeacher === '')">
         Barchasi
         <span class="opacity-60 tabular-nums">{{ totalStudents }}</span>
       </button>
-      <button
-        v-for="t in teachers"
-        :key="t.id"
-        @click="selectTeacher(String(t.id))"
-        :class="chip(activeTeacher === String(t.id))"
-      >
+      <button v-for="t in teachers" :key="t.id" @click="selectTeacher(String(t.id))"
+        :class="chip(activeTeacher === String(t.id))">
         {{ t.name }}
         <span class="opacity-60 tabular-nums">{{ t.students_count }}</span>
       </button>
-      <button
-        v-if="unassignedCount > 0"
-        @click="selectTeacher('none')"
-        :class="chip(activeTeacher === 'none')"
-      >
+      <button v-if="unassignedCount > 0" @click="selectTeacher('none')" :class="chip(activeTeacher === 'none')">
         Biriktirilmagan
         <span class="opacity-60 tabular-nums">{{ unassignedCount }}</span>
       </button>
     </div>
 
     <!-- ══════════ ASOSIY KARTA ══════════ -->
-    <div
-      class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden"
-    >
-      <div
-        class="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center gap-3"
-      >
-        <input
-          v-model="search"
-          type="text"
-          placeholder="Ism yoki telefon bo'yicha qidirish..."
-          class="flex-1 border border-slate-200 bg-slate-50 focus:bg-white rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-300 transition"
-        />
-        <label
-          class="flex items-center gap-2 text-xs text-slate-500 shrink-0 cursor-pointer select-none"
-        >
-          <input
-            type="checkbox"
-            v-model="includeGraduates"
-            class="accent-indigo-500"
-          />
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+      <div class="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center gap-3">
+        <input v-model="search" type="text" placeholder="Ism yoki telefon bo'yicha qidirish..."
+          class="flex-1 border border-slate-200 bg-slate-50 focus:bg-white rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-300 transition" />
+        <label class="flex items-center gap-2 text-xs text-slate-500 shrink-0 cursor-pointer select-none">
+          <input type="checkbox" v-model="includeGraduates" class="accent-indigo-500" />
           Bitiruvchilar ham
         </label>
         <p class="text-xs text-slate-400 shrink-0 tabular-nums">
@@ -75,16 +48,9 @@
         <div class="hidden sm:block overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
-              <tr
-                class="bg-slate-50 text-left text-[11px] uppercase tracking-wider text-slate-400 select-none"
-              >
+              <tr class="bg-slate-50 text-left text-[11px] uppercase tracking-wider text-slate-400 select-none">
                 <th class="px-3 py-2.5 w-10">
-                  <input
-                    type="checkbox"
-                    class="accent-indigo-500"
-                    :checked="allSelected"
-                    @change="toggleAll"
-                  />
+                  <input type="checkbox" class="accent-indigo-500" :checked="allSelected" @change="toggleAll" />
                 </th>
                 <th class="px-3 py-2.5 font-medium w-10 text-right"></th>
                 <th class="px-3 py-2.5 font-medium">Ism familiya</th>
@@ -98,42 +64,25 @@
               </tr>
             </thead>
             <tbody>
-              <tr
-                v-for="(s, i) in students"
-                :key="s.id"
-                @click="toggleOne(s.id)"
-                :class="[
-                  'border-t border-white/20 cursor-pointer transition-colors',
-                  selected.has(s.id) ? 'bg-white/10' : 'hover:bg-white/10',
-                ]"
-              >
+              <tr v-for="(s, i) in students" :key="s.id" @click="toggleOne(s.id)" :class="[
+                'border-t border-white/20 cursor-pointer transition-colors',
+                selected.has(s.id) ? 'bg-white/10' : 'hover:bg-white/10',
+              ]">
                 <td class="px-3 py-2" @click.stop>
-                  <input
-                    type="checkbox"
-                    class="accent-indigo-500"
-                    :checked="selected.has(s.id)"
-                    @change="toggleOne(s.id)"
-                  />
+                  <input type="checkbox" class="accent-indigo-500" :checked="selected.has(s.id)"
+                    @change="toggleOne(s.id)" />
                 </td>
                 <td class="px-3 py-2 text-right text-slate-300 tabular-nums text-xs">
                   {{ i + 1 }}
                 </td>
                 <td class="px-3 py-2 text-slate-700 font-medium">
                   {{ s.name }} {{ s.surname }}
-                  <span
-                    v-if="s.is_graduate"
-                    class="ml-1 text-[10px] px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600"
-                    >bitiruvchi</span
-                  >
+                  <span v-if="s.is_graduate"
+                    class="ml-1 text-[10px] px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600">bitiruvchi</span>
                 </td>
                 <td class="px-3 py-2">
-                  <a
-                    v-if="s.phone"
-                    :href="'tel:' + tel(s.phone)"
-                    @click.stop
-                    class="text-indigo-500 hover:underline tabular-nums whitespace-nowrap"
-                    >{{ s.phone }}</a
-                  >
+                  <a v-if="s.phone" :href="'tel:' + tel(s.phone)" @click.stop
+                    class="text-indigo-500 hover:underline tabular-nums whitespace-nowrap">{{ s.phone }}</a>
                   <span v-else class="text-slate-200">·</span>
                 </td>
                 <td class="px-3 py-2 text-slate-500">
@@ -146,68 +95,41 @@
                 <td class="px-3 py-2" @click.stop>
                   <!-- Tahrir rejimi -->
                   <div v-if="editingDiscountId === s.id" class="flex items-center gap-1.5">
-                    <input
-                      type="number"
-                      min="0"
-                      step="1000"
-                      v-model.number="discountDraft"
+                    <input type="number" min="0" step="1000" v-model.number="discountDraft"
                       class="w-24 border border-slate-200 rounded-lg px-2 py-1 text-xs outline-none focus:border-indigo-300"
-                      placeholder="0"
-                    />
-                    <button
-                      @click="saveDiscount(s)"
-                      :disabled="savingDiscount"
-                      class="px-2 py-1 rounded-lg bg-slate-900 text-white text-xs disabled:opacity-40"
-                    >
+                      placeholder="0" />
+                    <button @click="saveDiscount(s)" :disabled="savingDiscount"
+                      class="px-2 py-1 rounded-lg bg-slate-900 text-white text-xs disabled:opacity-40">
                       Saqlash
                     </button>
-                    <button
-                      @click="cancelDiscount"
-                      class="px-2 py-1 rounded-lg border border-slate-200 text-slate-500 text-xs"
-                    >
+                    <button @click="cancelDiscount"
+                      class="px-2 py-1 rounded-lg border border-slate-200 text-slate-500 text-xs">
                       ×
                     </button>
                   </div>
                   <!-- Ko'rinish rejimi -->
                   <div v-else class="flex flex-wrap items-center gap-1.5">
-                    <span
-                      v-if="s.wallet_balance > 0"
+                    <span v-if="s.wallet_balance > 0"
                       class="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 font-medium whitespace-nowrap"
-                      title="Kartada qolgan pul"
-                    >+{{ money(s.wallet_balance) }}</span>
-                    <span
-                      v-if="s.wallet_debt > 0"
+                      title="Kartada qolgan pul">+{{ money(s.wallet_balance) }}</span>
+                    <span v-if="s.wallet_debt > 0"
                       class="text-[10px] px-1.5 py-0.5 rounded-full bg-rose-50 text-rose-600 font-medium whitespace-nowrap"
-                      title="Qarzdorlik"
-                    >−{{ money(s.wallet_debt) }}</span>
-                    <span
-                      v-if="!s.wallet_balance && !s.wallet_debt"
-                      class="text-[11px] text-slate-300"
-                    >—</span>
-                    <button
-                      v-if="isManager"
-                      @click="openDiscount(s)"
-                      class="text-[11px] text-indigo-500 hover:underline whitespace-nowrap"
-                      :title="s.monthly_discount ? 'Oylik chegirma: ' + money(s.monthly_discount) : 'Doimiy oylik chegirma qo\'shish'"
-                    >
-                      {{ s.monthly_discount > 0 ? "Chegirma: " + money(s.monthly_discount) : "Chegirma +" }}
+                      title="Qarzdorlik">−{{ money(s.wallet_debt) }}</span>
+                    <span v-if="!s.wallet_balance && !s.wallet_debt" class="text-[11px] text-slate-300">—</span>
+                    <button v-if="isManager" @click="openDiscount(s)"
+                      class="text-[11px] border p-1 text-indigo-400 rounded-2xl"
+                      :title="s.monthly_discount ? 'Oylik chegirma: ' + money(s.monthly_discount) : 'Doimiy oylik chegirma qo\'shish'">
+                      {{ s.monthly_discount > 0 ? "Chegirma: " + money(s.monthly_discount) : "Chegirma qo'shish" }}
                     </button>
                   </div>
                 </td>
                 <td v-if="canManage" class="px-3 py-2 text-right" @click.stop>
-                  <button
-                    @click="deleteStudent(s)"
-                    :disabled="deletingId === s.id"
-                    title="O'quvchini o'chirish"
-                    class="text-slate-300 hover:bg-red-600 cursor-pointer px-2 transition p-1.5 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    <AppIcon
-                      :name="deletingId === s.id ? 'spinner' : 'trash'"
-                      :class="[
-                        'w-4 h-4 ',
-                        deletingId === s.id ? 'animate-spin' : '',
-                      ]"
-                    />
+                  <button @click="deleteStudent(s)" :disabled="deletingId === s.id" title="O'quvchini o'chirish"
+                    class="text-slate-300 hover:bg-red-600 cursor-pointer px-2 transition p-1.5 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed">
+                    <AppIcon :name="deletingId === s.id ? 'spinner' : 'trash'" :class="[
+                      'w-4 h-4 ',
+                      deletingId === s.id ? 'animate-spin' : '',
+                    ]" />
                   </button>
                 </td>
               </tr>
@@ -217,22 +139,12 @@
 
         <!-- Mobil kartalar -->
         <div class="sm:hidden divide-y divide-slate-100">
-          <div
-            v-for="s in students"
-            :key="s.id"
-            @click="toggleOne(s.id)"
-            :class="[
-              'p-4 flex items-start gap-3',
-              selected.has(s.id) ? 'bg-indigo-50/70' : '',
-            ]"
-          >
-            <input
-              type="checkbox"
-              class="accent-indigo-500 mt-1 shrink-0"
-              :checked="selected.has(s.id)"
-              @click.stop
-              @change="toggleOne(s.id)"
-            />
+          <div v-for="s in students" :key="s.id" @click="toggleOne(s.id)" :class="[
+            'p-4 flex items-start gap-3',
+            selected.has(s.id) ? 'bg-indigo-50/70' : '',
+          ]">
+            <input type="checkbox" class="accent-indigo-500 mt-1 shrink-0" :checked="selected.has(s.id)" @click.stop
+              @change="toggleOne(s.id)" />
             <div class="min-w-0 flex-1 space-y-1">
               <p class="font-semibold text-slate-800 text-sm leading-snug">
                 {{ s.name }} {{ s.surname }}
@@ -240,54 +152,34 @@
               <p class="text-[13px] text-slate-500">
                 {{ s.teacher_name || "biriktirilmagan" }}
               </p>
-              <a
-                v-if="s.phone"
-                :href="'tel:' + tel(s.phone)"
-                @click.stop
-                class="text-indigo-500 tabular-nums text-[13px]"
-                >{{ s.phone }}</a
-              >
+              <a v-if="s.phone" :href="'tel:' + tel(s.phone)" @click.stop
+                class="text-indigo-500 tabular-nums text-[13px]">{{ s.phone }}</a>
               <!-- Karta / chegirma -->
               <div class="flex flex-wrap items-center gap-1.5 pt-1" @click.stop>
-                <span
-                  v-if="s.wallet_balance > 0"
-                  class="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 font-medium"
-                >Karta +{{ money(s.wallet_balance) }}</span>
-                <span
-                  v-if="s.wallet_debt > 0"
-                  class="text-[10px] px-1.5 py-0.5 rounded-full bg-rose-50 text-rose-600 font-medium"
-                >Qarz −{{ money(s.wallet_debt) }}</span>
+                <span v-if="s.wallet_balance > 0"
+                  class="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 font-medium">Karta +{{
+                    money(s.wallet_balance) }}</span>
+                <span v-if="s.wallet_debt > 0"
+                  class="text-[10px] px-1.5 py-0.5 rounded-full bg-rose-50 text-rose-600 font-medium">Qarz −{{
+                    money(s.wallet_debt) }}</span>
                 <template v-if="editingDiscountId === s.id">
-                  <input
-                    type="number"
-                    min="0"
-                    step="1000"
-                    v-model.number="discountDraft"
-                    class="w-20 border border-slate-200 rounded-lg px-2 py-0.5 text-xs outline-none"
-                    placeholder="0"
-                  />
+                  <input type="number" min="0" step="1000" v-model.number="discountDraft"
+                    class="w-20 border border-slate-200 rounded-lg px-2 py-0.5 text-xs outline-none" placeholder="0" />
                   <button @click="saveDiscount(s)" :disabled="savingDiscount"
                     class="px-2 py-0.5 rounded-lg bg-slate-900 text-white text-[11px] disabled:opacity-40">Saqlash</button>
-                  <button @click="cancelDiscount" class="px-2 py-0.5 rounded-lg border border-slate-200 text-slate-500 text-[11px]">×</button>
+                  <button @click="cancelDiscount"
+                    class="px-2 py-0.5 rounded-lg border border-slate-200 text-slate-500 text-[11px]">×</button>
                 </template>
-                <button
-                  v-else-if="isManager"
-                  @click="openDiscount(s)"
-                  class="text-[11px] text-indigo-500 hover:underline"
-                >{{ s.monthly_discount > 0 ? "Chegirma: " + money(s.monthly_discount) : "Chegirma +" }}</button>
+                <button v-else-if="isManager" @click="openDiscount(s)"
+                  class="text-[11px] text-indigo-500 hover:underline">{{
+                    s.monthly_discount > 0 ? "Chegirma: " + money(s.monthly_discount) : "Chegirma +" }}</button>
               </div>
             </div>
-            <button
-              v-if="canManage"
-              @click.stop="deleteStudent(s)"
-              :disabled="deletingId === s.id"
+            <button v-if="canManage" @click.stop="deleteStudent(s)" :disabled="deletingId === s.id"
               title="O'quvchini o'chirish"
-              class="shrink-0 text-slate-300 hover:text-rose-500 transition p-2 -m-1 rounded-lg hover:bg-rose-50 disabled:opacity-40"
-            >
-              <AppIcon
-                :name="deletingId === s.id ? 'spinner' : 'trash'"
-                :class="['w-4 h-4', deletingId === s.id ? 'animate-spin' : '']"
-              />
+              class="shrink-0 text-slate-300 hover:text-rose-500 transition p-2 -m-1 rounded-lg hover:bg-rose-50 disabled:opacity-40">
+              <AppIcon :name="deletingId === s.id ? 'spinner' : 'trash'"
+                :class="['w-4 h-4', deletingId === s.id ? 'animate-spin' : '']" />
             </button>
           </div>
         </div>
@@ -295,58 +187,39 @@
     </div>
 
     <!-- ══════════ TANLANGANLARNI O'TKAZISH ══════════ -->
-    <div
-      v-if="selected.size"
-      class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-2xl p-4 z-30"
-    >
-      <div
-        class="max-w-4xl mx-auto flex flex-col sm:flex-row sm:items-center gap-3"
-      >
+    <div v-if="selected.size"
+      class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-2xl p-4 z-30">
+      <div class="max-w-4xl mx-auto flex flex-col sm:flex-row sm:items-center gap-3">
         <p class="text-sm text-slate-600 shrink-0">
           <span class="font-semibold tabular-nums">{{ selected.size }}</span>
           ta o'quvchi tanlandi
         </p>
-        <select
-          v-model="transferTo"
-          class="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-300"
-        >
+        <select v-model="transferTo"
+          class="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-300">
           <option value="">Qaysi ustozga o'tkazilsin?</option>
           <option v-for="t in teachers" :key="t.id" :value="t.id">
             {{ t.name }} ({{ t.students_count }} ta)
           </option>
         </select>
-        <button
-          @click="doTransfer"
-          :disabled="!transferTo || transferring"
-          class="px-5 py-2 rounded-lg bg-slate-900 text-white text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-800 transition shrink-0"
-        >
+        <button @click="doTransfer" :disabled="!transferTo || transferring"
+          class="px-5 py-2 rounded-lg bg-slate-900 text-white text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-800 transition shrink-0">
           {{ transferring ? "O'tkazilmoqda..." : "O'tkazish" }}
         </button>
-        <button
-          v-if="canManage"
-          @click="doBulkDelete"
-          :disabled="bulkDeleting"
-          class="px-4 py-2 rounded-lg bg-rose-600 text-white text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-rose-700 transition shrink-0 flex items-center gap-1.5"
-        >
-          <AppIcon
-            :name="bulkDeleting ? 'spinner' : 'trash'"
-            :class="['w-4 h-4', bulkDeleting ? 'animate-spin' : '']"
-          />
+        <button v-if="canManage" @click="doBulkDelete" :disabled="bulkDeleting"
+          class="px-4 py-2 rounded-lg bg-rose-600 text-white text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-rose-700 transition shrink-0 flex items-center gap-1.5">
+          <AppIcon :name="bulkDeleting ? 'spinner' : 'trash'"
+            :class="['w-4 h-4', bulkDeleting ? 'animate-spin' : '']" />
           {{ bulkDeleting ? "O'chirilmoqda..." : `O'chirish (${selected.size})` }}
         </button>
-        <button
-          @click="selected.clear()"
-          class="px-4 py-2 rounded-lg border border-slate-200 text-slate-500 text-sm hover:bg-slate-50 transition shrink-0"
-        >
+        <button @click="selected.clear()"
+          class="px-4 py-2 rounded-lg border border-slate-200 text-slate-500 text-sm hover:bg-slate-50 transition shrink-0">
           Bekor
         </button>
       </div>
     </div>
 
-    <p
-      v-if="toast"
-      class="fixed top-4 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-sm px-4 py-2 rounded-lg shadow-lg z-40"
-    >
+    <p v-if="toast"
+      class="fixed top-4 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-sm px-4 py-2 rounded-lg shadow-lg z-40">
       {{ toast }}
     </p>
   </div>

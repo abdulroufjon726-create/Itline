@@ -920,14 +920,54 @@ function syncWallet(studentId, balance, debt) {
   }
 }
 
-// Chegirmani xavfsiz saqlash: manfiy yoki oylik summadan katta bo'lmasin
-function onDiscountChange(payment) {
+// Chegirma summasini xavfsiz oraliqqa keltiradi (0 .. oylik summa)
+function sanitizeDiscount(payment) {
   let d = Number(payment.discount);
   if (isNaN(d) || d < 0) d = 0;
   const max = Number(paymentAmountDue(payment)) || 0;
   if (d > max) d = max;
   payment.discount = d;
-  savePaymentRow(payment);
+  return d;
+}
+
+// Doimiy oylik chegirmani o'rnatadi (barcha to'lanmagan oylarga qo'llanadi)
+async function setMonthlyDiscount(studentId, amount) {
+  try {
+    const res = await fetch(`${API}/students/update/${studentId}/`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ monthly_discount: amount }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "monthly_discount saqlanmadi");
+    const md = data.monthly_discount ?? amount;
+    // Shu o'quvchining barcha qatorlarini yangilaymiz: to'lanmagan oylarga
+    // chegirma qo'llanadi, to'langan oylar tegilmaydi
+    for (const p of payments.value) {
+      if (p.student_id !== studentId) continue;
+      p.monthly_discount = md;
+      if (!p.is_paid && !p.is_checked) {
+        p.discount = Math.min(md, Number(paymentAmountDue(p)) || 0);
+      }
+      if (data.wallet_balance !== undefined) {
+        p.wallet_balance = data.wallet_balance;
+        p.wallet_debt = data.wallet_debt;
+      }
+    }
+    showCoinToast(`Doimiy oylik chegirma o'rnatildi: ${money(md)}`);
+  } catch (e) {
+    console.error("setMonthlyDiscount:", e);
+  }
+}
+
+// Chegirmani qo'llash: mode 'month' — faqat shu oy, 'standing' — doimiy
+function applyDiscount(payment, mode) {
+  const amount = sanitizeDiscount(payment);
+  if (mode === "standing") {
+    setMonthlyDiscount(payment.student_id, amount);
+  } else {
+    savePaymentRow(payment);
+  }
 }
 function addMarkError(...fields) {
   fields.forEach((f) => addErrorFields.value.add(f));
@@ -1392,10 +1432,25 @@ const inputClass = (field) => [
                     </div>
                   </td>
                   <td v-if="isManager" class="px-4 py-3">
-                    <input type="number" min="0" step="1000" v-model.number="payment.discount"
-                      @keydown="blockNegativeKey($event)" @change="onDiscountChange(payment)" placeholder="0"
-                      class="border border-white/10 rounded-lg px-2 py-1 w-24 text-sm outline-none focus:border-white/10"
-                      title="Shu oy uchun chegirma" />
+                    <div class="flex items-center gap-1.5">
+                      <input type="number" min="0" step="1000" v-model.number="payment.discount"
+                        @keydown="blockNegativeKey($event)" placeholder="0"
+                        class="border border-white/10 rounded-lg px-2 py-1 w-20 text-sm outline-none focus:border-white/10" />
+                      <div class="flex rounded-lg overflow-hidden border border-gray-200 text-[11px] shrink-0">
+                        <button type="button" @click="applyDiscount(payment, 'month')"
+                          class="px-2 py-1 text-gray-600 hover:bg-gray-100 transition" title="Faqat shu oyga">
+                          1 oy
+                        </button>
+                        <button type="button" @click="applyDiscount(payment, 'standing')"
+                          class="px-2 py-1 border-l border-gray-200 text-indigo-600 hover:bg-indigo-50 transition"
+                          title="Har oyga (doimiy)">
+                          Doimiy
+                        </button>
+                      </div>
+                    </div>
+                    <p v-if="payment.monthly_discount > 0" class="text-[10px] text-indigo-500 mt-1 whitespace-nowrap">
+                      Doimiy: {{ money(payment.monthly_discount) }}
+                    </p>
                   </td>
                   <td class="px-4 py-3">
                     <template v-if="payment.total_lessons">
