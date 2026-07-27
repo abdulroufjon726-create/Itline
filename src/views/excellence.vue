@@ -1697,34 +1697,30 @@ const inputClass = (field) => [
 
     <!-- ══════════ DAVOMAT ══════════ -->
     <div v-if="activeTab === 'attendance'">
-      <!-- Ustoz tanlash (dropdown) -->
-      <div class="mb-4">
-        <label class="block text-xs font-medium text-gray-400 mb-1.5">Ustoz</label>
-        <div class="relative w-full sm:w-72">
-          <select
-            :value="selectedTeacherForAtt?.id || ''"
-            @change="onAttTeacherChange($event)"
-            class="w-full appearance-none border border-gray-200 bg-white rounded-xl pl-3 pr-9 py-2.5 text-sm outline-none focus:border-indigo-300 transition cursor-pointer"
-          >
-            <option value="" disabled>Ustozni tanlang…</option>
-            <option v-for="teacher in teachers" :key="teacher.id" :value="teacher.id">
-              {{ teacher.name }}
-            </option>
-          </select>
-          <AppIcon
-            name="chevron-down"
-            class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-          />
-        </div>
-      </div>
-
-      <div
-        v-if="!selectedTeacherForAtt"
-        class="text-center py-12 text-gray-400 text-sm border border-dashed border-gray-200 rounded-2xl"
-      >
-        Davomat uchun avval ustozni tanlang
-      </div>
-      <AttendanceBoard v-else :groups="attTeacherGroups" />
+      <!-- Ustoz + guruh yonma-yon (ustoz slot orqali board filtriga qo'shiladi) -->
+      <AttendanceBoard :groups="attTeacherGroups">
+        <template #filters>
+          <div class="w-full sm:w-64">
+            <label class="block text-xs font-medium text-gray-400 mb-1.5">Ustoz</label>
+            <div class="relative">
+              <select
+                :value="selectedTeacherForAtt?.id || ''"
+                @change="onAttTeacherChange($event)"
+                class="w-full appearance-none border border-gray-200 bg-white rounded-xl pl-3 pr-9 py-2.5 text-sm outline-none focus:border-indigo-300 transition cursor-pointer"
+              >
+                <option value="" disabled>Ustozni tanlang…</option>
+                <option v-for="teacher in teachers" :key="teacher.id" :value="teacher.id">
+                  {{ teacher.name }}
+                </option>
+              </select>
+              <AppIcon
+                name="chevron-down"
+                class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+              />
+            </div>
+          </div>
+        </template>
+      </AttendanceBoard>
     </div>
 
     <!-- ══════════ QO'SHISH ══════════ -->

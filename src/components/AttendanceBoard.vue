@@ -200,24 +200,29 @@ onBeforeUnmount(stopPolling);
 
 <template>
   <div>
-    <!-- Guruh tanlash (dropdown) -->
-    <div v-if="groups.length" class="mb-4">
-      <label class="block text-xs font-medium text-gray-400 mb-1.5">Guruh</label>
-      <div class="relative w-full sm:w-72">
-        <select
-          v-model="selectedGroupId"
-          class="w-full appearance-none border border-gray-200 bg-white rounded-xl pl-3 pr-9 py-2.5 text-sm outline-none focus:border-indigo-300 transition cursor-pointer"
-        >
-          <option :value="null" disabled>Guruhni tanlang…</option>
-          <option v-for="g in groups" :key="g.id" :value="g.id">{{ g.name }}</option>
-        </select>
-        <AppIcon
-          name="chevron-down"
-          class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-        />
+    <!-- Filtrlar: (manager'da ustoz slot orqali) + guruh — yonma-yon -->
+    <div class="flex flex-col sm:flex-row gap-3 mb-4">
+      <slot name="filters" />
+      <div class="w-full sm:w-64">
+        <label class="block text-xs font-medium text-gray-400 mb-1.5">Guruh</label>
+        <div class="relative">
+          <select
+            v-model="selectedGroupId"
+            :disabled="!groups.length"
+            class="w-full appearance-none border border-gray-200 bg-white rounded-xl pl-3 pr-9 py-2.5 text-sm outline-none focus:border-indigo-300 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <option :value="null" disabled>
+              {{ groups.length ? "Guruhni tanlang…" : "—" }}
+            </option>
+            <option v-for="g in groups" :key="g.id" :value="g.id">{{ g.name }}</option>
+          </select>
+          <AppIcon
+            name="chevron-down"
+            class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+          />
+        </div>
       </div>
     </div>
-    <p v-else class="text-sm text-gray-400 py-6 text-center">Guruh yo'q</p>
 
     <template v-if="selectedGroupId">
       <!-- ══════════ Boshqaruv paneli (2 input: rejim + sana/oy) ══════════ -->
