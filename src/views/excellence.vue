@@ -11,6 +11,7 @@ import LessonsPlans from "./LessonsPlans.vue";
 import NewsManager from "./NewsManager.vue";
 import AppIcon from "@/components/AppIcon.vue";
 import AttendanceBoard from "@/components/AttendanceBoard.vue";
+import PaymentRequests from "@/components/PaymentRequests.vue";
 
 const router = useRouter();
 const API = "https://itline-django-9s85.onrender.com/api";
@@ -35,10 +36,22 @@ const activeTab = ref("payments");
 // Asosiy (eng ko'p ishlatiladigan) tablar — doim ko'rinadi
 const PRIMARY_TABS = [
   { key: "payments", icon: "payment", label: "To'lovlar" },
+  { key: "payreq", icon: "receipt", label: "So'rovlar" },
   { key: "attendance", icon: "attendance", label: "Davomat" },
   { key: "groups", icon: "groups", label: "Guruhlar" },
   { key: "add", icon: "user-plus", label: "Qo'shish" },
 ];
+
+// Kutayotgan to'lov so'rovlari soni (badge)
+const pendingReqCount = ref(0);
+async function loadPendingReqCount() {
+  try {
+    const res = await fetch(`${API}/payment-requests/pending-count/`);
+    if (res.ok) pendingReqCount.value = (await res.json()).count || 0;
+  } catch (e) {
+    /* jim */
+  }
+}
 // Qolganlari "Ko'proq" menyusida — navigatsiya toza bo'lishi uchun
 const MORE_TABS = [
   { key: "fee", icon: "briefcase", label: "Kurslar" },
@@ -258,6 +271,10 @@ onMounted(async () => {
   ]);
   await fetchPayments();
   fetchTgStatus();
+  loadPendingReqCount();
+  setInterval(() => {
+    if (document.visibilityState === "visible") loadPendingReqCount();
+  }, 15000);
 });
 
 watch(activeTab, (tab) => {
@@ -1207,13 +1224,17 @@ const inputClass = (field) => [
     <!-- Tablar: asosiylari ko'rinadi, qolganlari "Ko'proq" menyusida -->
     <div class="flex gap-2 mb-6 pb-1 flex-wrap items-center">
       <button v-for="tab in PRIMARY_TABS" :key="tab.key" @click="activeTab = tab.key" :class="[
-        'cursor-pointer px-4 py-2 rounded-full text-sm border transition whitespace-nowrap flex items-center gap-1.5',
+        'cursor-pointer px-4 py-2 rounded-full text-sm border transition whitespace-nowrap flex items-center gap-1.5 relative',
         activeTab === tab.key
           ? 'bg-gray-900 text-white border-gray-900'
           : 'border-gray-200 text-gray-500 hover:bg-gray-50',
       ]">
         <AppIcon :name="tab.icon" />
         {{ tab.label }}
+        <span v-if="tab.key === 'payreq' && pendingReqCount > 0"
+          class="ml-0.5 min-w-[18px] h-[18px] px-1 inline-flex items-center justify-center rounded-full bg-rose-500 text-white text-[11px] font-bold">
+          {{ pendingReqCount }}
+        </span>
       </button>
 
       <!-- Ko'proq menyusi -->
@@ -1693,6 +1714,11 @@ const inputClass = (field) => [
           </p>
         </div>
       </template>
+    </div>
+
+    <!-- ══════════ TO'LOV SO'ROVLARI (chek) ══════════ -->
+    <div v-if="activeTab === 'payreq'">
+      <PaymentRequests />
     </div>
 
     <!-- ══════════ DAVOMAT ══════════ -->

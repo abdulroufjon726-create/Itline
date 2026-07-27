@@ -6,6 +6,7 @@ import { useRouter } from "vue-router";
 import LessonsPlans from "./LessonsPlans.vue";
 import AppIcon from "@/components/AppIcon.vue";
 import PaymentCard from "@/components/PaymentCard.vue";
+import StudentPayNow from "@/components/StudentPayNow.vue";
 
 const router = useRouter();
 const API = "https://itline-django-9s85.onrender.com/api";
@@ -204,6 +205,14 @@ const netDue = (p) =>
 // Shu oy uchun qolgan (to'lanmagan) qism
 const monthRemaining = (p) => Math.max(0, netDue(p) - (Number(p.paid_amount) || 0));
 
+// To'lovlar ro'yxati yig'iladigan (accordion) — ochiq oylar to'plami
+const openPayments = ref(new Set());
+function togglePayment(id) {
+  const s = new Set(openPayments.value);
+  s.has(id) ? s.delete(id) : s.add(id);
+  openPayments.value = s;
+}
+
 // ─── Coin actions ─────────────────────────────────────────────
 function togglePanel(id) {
   expandedStudentId.value = expandedStudentId.value === id ? null : id;
@@ -374,7 +383,8 @@ const stageStyle = (stage) => {
     </div>
 
     <!-- PROFILE CARD — faqat admin/ustoz uchun (o'quvchida virtual karta bor) -->
-    <div v-if="user.is_admin" class="bg-white border border-gray-100 rounded-2xl p-4 mb-5 flex items-center gap-3 shadow-sm">
+    <div v-if="user.is_admin"
+      class="bg-white border border-gray-100 rounded-2xl p-4 mb-5 flex items-center gap-3 shadow-sm">
       <div
         class="w-11 h-11 sm:w-13 sm:h-13 rounded-full flex items-center justify-center font-semibold text-sm shrink-0"
         :style="AVATAR_COLORS[0]">
@@ -383,7 +393,9 @@ const stageStyle = (stage) => {
       <div class="flex-1 min-w-0">
         <p class="font-medium text-sm sm:text-base truncate">
           {{ user.name }} {{ user.surname }}
-          <span v-if="user.is_admin" class="text-yellow-500 ml-1"><AppIcon name="star" /></span>
+          <span v-if="user.is_admin" class="text-yellow-500 ml-1">
+            <AppIcon name="star" />
+          </span>
         </p>
         <p class="text-xs text-gray-400 truncate">{{ user.phone }}</p>
         <div class="mt-1.5">
@@ -398,13 +410,8 @@ const stageStyle = (stage) => {
 
     <!-- VIRTUAL KARTA — faqat o'quvchi uchun (kabinet yuqorisida) -->
     <div v-if="!user.is_admin" class="mb-5">
-      <PaymentCard
-        :balance="wallet.balance"
-        :debt="wallet.debt"
-        :monthly-discount="wallet.monthly_discount"
-        :name="`${user.name || ''} ${user.surname || ''}`.trim()"
-        :loading="loadingWallet"
-      />
+      <PaymentCard :balance="wallet.balance" :debt="wallet.debt" :monthly-discount="wallet.monthly_discount"
+        :name="`${user.name || ''} ${user.surname || ''}`.trim()" :loading="loadingWallet" />
     </div>
 
     <!-- TABS -->
@@ -539,8 +546,7 @@ const stageStyle = (stage) => {
             </div>
           </div>
 
-          <div v-if="user.is_admin && expandedStudentId === student.id"
-            class="border-t  px-4 py-4">
+          <div v-if="user.is_admin && expandedStudentId === student.id" class="border-t  px-4 py-4">
             <p class="text-xs font-medium text-gray-500 mb-3">
               {{ student.name }} {{ student.surname }} uchun coin bering
             </p>
@@ -554,7 +560,9 @@ const stageStyle = (stage) => {
                     ? 'bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100'
                     : 'bg-rose-50 text-rose-600 border-rose-100 hover:bg-rose-100',
                 ]">
-                <span class="text-base leading-none"><AppIcon :name="action.icon" /></span>
+                <span class="text-base leading-none">
+                  <AppIcon :name="action.icon" />
+                </span>
                 <span class="leading-tight text-center">{{
                   action.label
                 }}</span>
@@ -655,32 +663,24 @@ const stageStyle = (stage) => {
          PAYMENTS TAB
     ═══════════════════════════════════════ -->
     <div v-if="activeTab === 'payments'">
-      <!-- Virtual karta (tab yuqorisida ham) -->
-      <div class="mb-4">
-        <PaymentCard
-          :balance="wallet.balance"
-          :debt="wallet.debt"
-          :monthly-discount="wallet.monthly_discount"
-          :loading="loadingWallet"
-        />
-      </div>
+      <!-- To'lov qilish (karta + chek yuklash) -->
+      <StudentPayNow v-if="!user.is_admin" :student-id="user.id" @submitted="fetchWallet" />
 
       <div v-if="loadingPayments" class="text-center py-10 text-gray-400 text-sm">
         Yuklanmoqda...
       </div>
-      <div v-else-if="payments.length" class="space-y-3">
+      <div v-else-if="payments.length" class="space-y-2">
+        <p class="text-xs text-gray-400 mb-1">To'lovlar tarixi</p>
         <div v-for="payment in payments" :key="payment.id"
-          class="bg-white border border-gray-100 rounded-2xl p-4 sm:p-5 shadow-sm">
-          <div class="flex items-start justify-between gap-3 mb-4">
-            <div>
-              <p class="font-semibold text-base">
-                {{ formatMonth(payment.month) }}
-              </p>
-              <p class="text-xs text-gray-400 mt-0.5">
-                {{ payment.stage }}-etap
-              </p>
+          class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+          <!-- Sarlavha (bosilganda ochiladi) -->
+          <button @click="togglePayment(payment.id)"
+            class="w-full flex items-center justify-between gap-3 px-4 py-3 text-left">
+            <div class="min-w-0">
+              <p class="font-semibold text-sm">{{ formatMonth(payment.month) }}</p>
+              <p class="text-xs text-gray-400 mt-0.5">{{ formatMoney(netDue(payment)) }}</p>
             </div>
-            <div class="text-right shrink-0">
+            <div class="flex items-center gap-2 shrink-0">
               <span :class="[
                 'px-2.5 py-1 rounded-full text-xs font-medium',
                 monthRemaining(payment) <= 0
@@ -689,48 +689,46 @@ const stageStyle = (stage) => {
                     ? 'bg-amber-100 text-amber-700'
                     : 'bg-red-100 text-red-600',
               ]">{{
-                monthRemaining(payment) <= 0
-                  ? "To'liq to'langan"
-                  : payment.paid_amount > 0
-                    ? "Qisman to'langan"
-                    : "To'lanmagan"
+                monthRemaining(payment) <= 0 ? "To'langan" : payment.paid_amount > 0
+                  ? "Qisman"
+                  : "To'lanmagan"
               }}</span>
-              <p v-if="payment.paid_at" class="text-xs text-gray-400 mt-1.5">
-                {{ formatDate(payment.paid_at) }}
-              </p>
+              <AppIcon name="chevron-down" class="text-gray-400 transition-transform"
+                :class="openPayments.has(payment.id) ? 'rotate-180' : ''" />
             </div>
-          </div>
+          </button>
 
-          <!-- Oylik summa (chegirma bo'lsa ustidan chizilgan holda) -->
-          <p class="text-xs text-gray-400 mb-1">Oylik to'lov</p>
-          <div class="flex items-baseline gap-2 flex-wrap">
-            <p class="text-2xl sm:text-3xl font-bold">
-              {{ formatMoney(netDue(payment)) }}
+          <!-- Tafsilotlar -->
+          <div v-if="openPayments.has(payment.id)" class="px-4 pb-4 border-t border-gray-50 pt-3">
+            <p class="text-xs text-gray-400 mb-1">Oylik to'lov ({{ payment.stage }}-etap)</p>
+            <div class="flex items-baseline gap-2 flex-wrap">
+              <p class="text-2xl font-bold">{{ formatMoney(netDue(payment)) }}</p>
+              <span v-if="payment.discount > 0" class="text-sm text-gray-400 line-through">
+                {{ formatMoney(payment.amount_due) }}
+              </span>
+              <span v-if="payment.discount > 0"
+                class="text-xs px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 font-medium">
+                −{{ formatMoney(payment.discount) }} chegirma
+              </span>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mt-4 pt-3 border-t border-gray-100">
+              <div>
+                <p class="text-[11px] text-gray-400 mb-0.5">To'langan</p>
+                <p class="text-sm font-semibold text-emerald-600 tabular-nums">
+                  {{ formatMoney(payment.paid_amount) }}
+                </p>
+              </div>
+              <div>
+                <p class="text-[11px] text-gray-400 mb-0.5">Qolgan</p>
+                <p class="text-sm font-semibold tabular-nums"
+                  :class="monthRemaining(payment) > 0 ? 'text-red-500' : 'text-emerald-600'">
+                  {{ formatMoney(monthRemaining(payment)) }}
+                </p>
+              </div>
+            </div>
+            <p v-if="payment.paid_at" class="text-xs text-gray-400 mt-3">
+              To'langan sana: {{ formatDate(payment.paid_at) }}
             </p>
-            <span v-if="payment.discount > 0" class="text-sm text-gray-400 line-through">
-              {{ formatMoney(payment.amount_due) }}
-            </span>
-            <span v-if="payment.discount > 0"
-              class="text-xs px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 font-medium">
-              −{{ formatMoney(payment.discount) }} chegirma
-            </span>
-          </div>
-
-          <!-- To'langan / qolgan -->
-          <div class="grid grid-cols-2 gap-3 mt-4 pt-3 border-t border-gray-100">
-            <div>
-              <p class="text-[11px] text-gray-400 mb-0.5">To'langan</p>
-              <p class="text-sm font-semibold text-emerald-600 tabular-nums">
-                {{ formatMoney(payment.paid_amount) }}
-              </p>
-            </div>
-            <div>
-              <p class="text-[11px] text-gray-400 mb-0.5">Qolgan</p>
-              <p class="text-sm font-semibold tabular-nums"
-                :class="monthRemaining(payment) > 0 ? 'text-red-500' : 'text-emerald-600'">
-                {{ formatMoney(monthRemaining(payment)) }}
-              </p>
-            </div>
           </div>
         </div>
       </div>
@@ -769,8 +767,8 @@ const stageStyle = (stage) => {
           <li v-for="(s, i) in groupLeaderboard" :key="s.id"
             class="flex items-center gap-3 bg-white border border-gray-100 rounded-2xl px-4 py-3 shadow-sm"
             :class="s.id === user.id ? 'ring-2 ring-indigo-200' : ''">
-            <span class="w-7 text-center font-bold shrink-0"
-              :class="i < 3 ? 'text-amber-500' : 'text-gray-400'">{{ i + 1 }}</span>
+            <span class="w-7 text-center font-bold shrink-0" :class="i < 3 ? 'text-amber-500' : 'text-gray-400'">{{ i +
+              1 }}</span>
             <span class="flex-1 min-w-0 truncate text-sm font-medium">
               {{ s.name }} {{ s.surname }}
               <span v-if="s.id === user.id" class="text-xs text-indigo-500">(siz)</span>
