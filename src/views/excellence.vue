@@ -10,6 +10,7 @@ import Groups from "./groups.vue";
 import LessonsPlans from "./LessonsPlans.vue";
 import NewsManager from "./NewsManager.vue";
 import AppIcon from "@/components/AppIcon.vue";
+import AttendanceBoard from "@/components/AttendanceBoard.vue";
 
 const router = useRouter();
 const API = "https://itline-django-9s85.onrender.com/api";
@@ -79,6 +80,15 @@ const studentMonthAttendance = ref([]);
 const selectedAttMonth = ref(new Date().toISOString().slice(0, 7));
 const loadingAtt = ref(false);
 const attPayments = ref([]);
+
+// Tanlangan ustozning guruhlari — davomat board'iga beriladi
+const attTeacherGroups = computed(() =>
+  groups.value.filter(
+    (g) =>
+      g.teacher?.id === selectedTeacherForAtt.value?.id ||
+      g.teacher === selectedTeacherForAtt.value?.id,
+  ),
+);
 
 const selectedMonth = ref(new Date().toISOString().slice(0, 7));
 const selectedTeacherId = ref("");
@@ -1689,144 +1699,33 @@ const inputClass = (field) => [
 
     <!-- ══════════ DAVOMAT ══════════ -->
     <div v-if="activeTab === 'attendance'">
-      <div class="flex gap-4 mb-4">
-        <div>
-          <label class="block text-xs text-gray-400 mb-1">Oy</label>
-          <input type="month" v-model="selectedAttMonth"
-            class="border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none" />
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <!-- O'qituvchilar -->
-        <div class="space-y-2">
-          <h3 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">
-            O'qituvchilar
-          </h3>
-          <p v-if="teachers.length === 0" class="text-sm text-gray-400 py-4">
-            Yuklanmoqda...
-          </p>
-          <div v-for="teacher in teachers" :key="teacher.id" @click="selectTeacherForAtt(teacher)" :class="[
-            'px-4 py-3 rounded-xl cursor-pointer transition text-sm border',
+      <!-- Ustoz tanlash -->
+      <div class="flex flex-wrap gap-2 mb-4">
+        <button
+          v-for="teacher in teachers"
+          :key="teacher.id"
+          @click="selectTeacherForAtt(teacher)"
+          :class="[
+            'px-3.5 py-1.5 rounded-full text-sm border transition whitespace-nowrap flex items-center gap-1.5',
             selectedTeacherForAtt?.id === teacher.id
               ? 'bg-gray-900 text-white border-gray-900'
-              : 'border-gray-100 hover:bg-gray-50',
-          ]">
-            <p class="font-medium">{{ teacher.name }}</p>
-            <p :class="selectedTeacherForAtt?.id === teacher.id
-              ? 'text-gray-300'
-              : 'text-gray-400'
-              " class="text-xs">
-              {{ teacher.phone || "Telefon yo'q" }}
-            </p>
-          </div>
-        </div>
-
-        <!-- Studentlar -->
-        <div class="space-y-2">
-          <h3 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">
-            O'quvchilar
-          </h3>
-          <p v-if="!selectedTeacherForAtt" class="text-sm text-gray-400 py-4">
-            O'qituvchi tanlang
-          </p>
-          <p v-else-if="loadingAtt" class="text-sm text-gray-400 py-4">
-            Yuklanmoqda...
-          </p>
-          <template v-else>
-            <div v-for="student in attStudents" :key="student.id" @click="selectStudentForAtt(student)" :class="[
-              'px-4 py-3 rounded-xl cursor-pointer transition text-sm border',
-              selectedStudent?.id === student.id
-                ? 'bg-gray-900 text-white border-gray-900'
-                : 'border-gray-100 hover:bg-gray-50',
-            ]">
-              <div class="flex justify-between items-center">
-                <div>
-                  <p class="font-medium">
-                    {{ student.name }} {{ student.surname }}
-                  </p>
-                  <p :class="selectedStudent?.id === student.id
-                    ? 'text-gray-300'
-                    : 'text-gray-400'
-                    " class="text-xs">
-                    {{ student.group_name || student.course_name || "" }}
-                  </p>
-                </div>
-                <span v-if="getStudentPaymentForAtt(student.id)" :class="[
-                  'text-xs px-2 py-0.5 rounded-full',
-                  getStudentPaymentForAtt(student.id)?.is_paid
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-red-100 text-red-500',
-                ]">
-                  <AppIcon :name="getStudentPaymentForAtt(student.id)?.is_paid ? 'check' : 'x'" />
-                </span>
-              </div>
-            </div>
-            <p v-if="attStudents.length === 0" class="text-sm text-gray-400 py-4">
-              O'quvchi yo'q
-            </p>
-          </template>
-        </div>
-
-        <!-- Davomat -->
-        <div>
-          <h3 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">
-            {{
-              selectedStudent ? selectedStudent.name + " davomati" : "Davomat"
-            }}
-          </h3>
-          <p v-if="!selectedStudent" class="text-sm text-gray-400 py-4">
-            O'quvchi tanlang
-          </p>
-          <p v-else-if="loadingAtt" class="text-sm text-gray-400 py-4">
-            Yuklanmoqda...
-          </p>
-          <div v-else class="space-y-1.5">
-            <div v-if="getStudentPaymentForAtt(selectedStudent.id)" :class="[
-              'rounded-xl p-3 mb-3',
-              getStudentPaymentForAtt(selectedStudent.id)?.is_paid
-                ? 'bg-green-50 border border-green-100'
-                : 'bg-red-50 border border-red-100',
-            ]">
-              <p class="text-xs font-medium" :class="getStudentPaymentForAtt(selectedStudent.id)?.is_paid
-                ? 'text-green-700'
-                : 'text-red-600'
-                ">
-                {{
-                  getStudentPaymentForAtt(selectedStudent.id)?.is_paid
-                    ? "To'lov qilingan"
-                    : "To'lov qilinmagan"
-                }}
-              </p>
-              <p class="text-sm font-semibold mt-0.5">
-                {{
-                  money(
-                    paymentAmountDue(
-                      getStudentPaymentForAtt(selectedStudent.id),
-                    ),
-                  )
-                }}
-              </p>
-            </div>
-            <div v-for="att in studentMonthAttendance" :key="att.id"
-              class="flex items-center justify-between border border-gray-100 rounded-xl px-3 py-2">
-              <div>
-                <p class="text-sm font-medium">{{ att.lesson_title }}</p>
-                <p class="text-xs text-gray-400">{{ att.lesson_date }}</p>
-              </div>
-              <span :class="[
-                'px-2 py-0.5 rounded-full text-xs font-medium',
-                statusStyle[att.status],
-              ]">
-                {{ statusLabel[att.status] }}
-              </span>
-            </div>
-            <p v-if="studentMonthAttendance.length === 0" class="text-sm text-gray-400 py-4 text-center">
-              Bu oy uchun dars yo'q
-            </p>
-          </div>
-        </div>
+              : 'border-gray-200 text-gray-500 bg-white hover:bg-gray-50',
+          ]"
+        >
+          <AppIcon name="teacher" /> {{ teacher.name }}
+        </button>
+        <p v-if="teachers.length === 0" class="text-sm text-gray-400 py-2">
+          Yuklanmoqda...
+        </p>
       </div>
+
+      <div
+        v-if="!selectedTeacherForAtt"
+        class="text-center py-12 text-gray-400 text-sm border border-dashed border-gray-200 rounded-2xl"
+      >
+        Davomat uchun avval ustozni tanlang
+      </div>
+      <AttendanceBoard v-else :groups="attTeacherGroups" />
     </div>
 
     <!-- ══════════ QO'SHISH ══════════ -->
