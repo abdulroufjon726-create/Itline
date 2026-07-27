@@ -358,7 +358,13 @@ const stageStyle = (stage) => {
         </RouterLink>
         <div class="min-w-0">
           <h1 class="text-lg sm:text-xl font-semibold truncate">Kabinet</h1>
-          <p class="text-xs text-gray-400">Xush kelibsiz, {{ user.name }}</p>
+          <p class="text-xs text-gray-400 truncate">Xush kelibsiz, {{ user.name }}</p>
+          <!-- O'quvchi guruhi (kichik belgi) — profil karta olib tashlangani uchun -->
+          <span v-if="!user.is_admin && myGroup"
+            class="inline-flex items-center gap-1 text-xs mt-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+            <AppIcon name="groups" /> {{ myGroup.name }}
+          </span>
+          <span v-else-if="!user.is_admin && !myGroup" class="text-xs text-gray-300">Guruhga biriktirilmagan</span>
         </div>
       </div>
       <button @click="$router.push('/profile')"
@@ -367,8 +373,8 @@ const stageStyle = (stage) => {
       </button>
     </div>
 
-    <!-- PROFILE CARD -->
-    <div class="bg-white border border-gray-100 rounded-2xl p-4 mb-5 flex items-center gap-3 shadow-sm">
+    <!-- PROFILE CARD — faqat admin/ustoz uchun (o'quvchida virtual karta bor) -->
+    <div v-if="user.is_admin" class="bg-white border border-gray-100 rounded-2xl p-4 mb-5 flex items-center gap-3 shadow-sm">
       <div
         class="w-11 h-11 sm:w-13 sm:h-13 rounded-full flex items-center justify-center font-semibold text-sm shrink-0"
         :style="AVATAR_COLORS[0]">
