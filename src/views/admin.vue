@@ -41,6 +41,13 @@ const leaderScope = ref("mine");
 // Admin o'zining o'quvchilarini ko'radi
 const myTeacherId = computed(() => user?.teacher_id ?? null);
 
+// ─── Tezkor navigatsiya ──────────────────────────────────────
+const quickNav = [
+  { to: "/students", icon: "users", label: "O'quvchilar", color: "bg-indigo-500" },
+  { to: "/Attendance", icon: "attendance", label: "Davomat", color: "bg-emerald-500" },
+  { to: "/groups", icon: "groups", label: "Guruhlar", color: "bg-amber-500" },
+];
+
 // ─── Helpers ─────────────────────────────────────────────────
 function formatMoney(value) {
   return Number(value || 0).toLocaleString("uz-UZ") + " so'm";
@@ -195,25 +202,21 @@ function open_students() {
     </div>
 
     <!-- QUICK NAV -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-      <div
-        @click="$router.push('/students')"
-        class="p-5 border rounded-2xl cursor-pointer hover:bg-gray-50"
+    <div class="grid grid-cols-3 gap-3 mb-8">
+      <button
+        v-for="item in quickNav"
+        :key="item.to"
+        @click="$router.push(item.to)"
+        class="flex flex-col items-center gap-2 p-4 sm:p-5 border border-gray-100 rounded-2xl cursor-pointer hover:bg-gray-50 hover:border-gray-200 transition text-center"
       >
-        <AppIcon name="users" /> O'quvchilar
-      </div>
-      <div
-        @click="$router.push('/Attendance')"
-        class="p-5 border rounded-2xl cursor-pointer hover:bg-gray-50"
-      >
-        <AppIcon name="attendance" /> Davomat
-      </div>
-      <div
-        @click="$router.push('/groups')"
-        class="p-5 border rounded-2xl cursor-pointer hover:bg-gray-50"
-      >
-        <AppIcon name="groups" /> Guruhlar
-      </div>
+        <span
+          class="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-sm"
+          :class="item.color"
+        >
+          <AppIcon :name="item.icon" />
+        </span>
+        <span class="text-xs sm:text-sm font-medium text-gray-700">{{ item.label }}</span>
+      </button>
     </div>
 
     <!-- STUDENTS -->
