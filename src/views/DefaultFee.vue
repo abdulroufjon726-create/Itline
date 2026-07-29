@@ -15,7 +15,7 @@
                 </button>
             </div>
 
-            <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden overflow-x-auto">
                 <table class="w-full text-left text-sm">
                     <thead class="bg-gray-50 text-gray-400">
                         <tr>

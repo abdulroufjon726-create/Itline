@@ -74,7 +74,7 @@ onMounted(fetchOrders);
     </div>
 
     <!-- Filter tabs -->
-    <div class="flex gap-2 mb-5">
+    <div class="flex gap-2 mb-5 overflow-x-auto">
       <button
         v-for="f in [
           { key: 'pending', icon: 'clock', label: 'Kutilmoqda' },

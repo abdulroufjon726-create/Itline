@@ -4,7 +4,7 @@ import PwaInstall from './components/PwaInstall.vue'
 </script>
 
 <template>
-  <div  class="overflow-x-hidden">
+  <div  class="overflow-x-hidden min-h-screen px-4">
     <Suspense>
       <template #default>
         <RouterView />

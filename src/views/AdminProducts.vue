@@ -185,7 +185,7 @@ onMounted(fetchProducts);
     </div>
 
     <!-- Table -->
-    <div v-else class="bg-white rounded-2xl shadow-sm overflow-hidden">
+    <div v-else class="bg-white rounded-2xl shadow-sm overflow-hidden overflow-x-auto">
       <table class="w-full text-sm">
         <thead class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wide">
           <tr>
