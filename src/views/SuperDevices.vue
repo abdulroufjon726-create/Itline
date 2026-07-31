@@ -1,9 +1,8 @@
 <template>
-  <div class="min-h-screen bg-slate-50 p-4 sm:p-6 font-sans">
-    <SuperNav
-      title="Qurilmalar"
-      subtitle="Panelga qaysi qurilmalardan kirilayotgani. Shubhali qurilmani bloklab qo'ysa bo'ladi"
-    />
+  <SuperLayout
+    title="Qurilmalar"
+    subtitle="Panelga qaysi qurilmalardan kirilayotgani. Shubhali qurilmani bloklab qo'ysa bo'ladi"
+  >
 
     <!-- ══════════ FILTR ══════════ -->
     <div class="flex flex-wrap items-center gap-2 mb-4">
@@ -129,13 +128,13 @@
     >
       {{ toast }}
     </p>
-  </div>
+  </SuperLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
 import AppIcon from "@/components/AppIcon.vue";
-import SuperNav from "@/components/SuperNav.vue";
+import SuperLayout from "@/components/SuperLayout.vue";
 import { apiGet, apiSend } from "@/utils/managerApi";
 
 const devices = ref([]);

@@ -1,9 +1,8 @@
 <template>
-  <div class="min-h-screen bg-slate-50 p-4 sm:p-6 font-sans">
-    <SuperNav
-      title="Ustoz oyliklari"
-      subtitle="Default oylik — stavka × o'quvchilar soni. To'landi bosilganda moliyadagi chiqimlarga avtomatik yoziladi"
-    />
+  <SuperLayout
+    title="Ustoz oyliklari"
+    subtitle="Default oylik — stavka × o'quvchilar soni. To'landi bosilganda moliyadagi chiqimlarga avtomatik yoziladi"
+  >
 
     <!-- ══════════ OY + JAMI ══════════ -->
     <div class="flex flex-col sm:flex-row sm:items-end gap-3 mb-4">
@@ -299,13 +298,13 @@
     >
       {{ toast }}
     </p>
-  </div>
+  </SuperLayout>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted, watch } from "vue";
 import AppIcon from "@/components/AppIcon.vue";
-import SuperNav from "@/components/SuperNav.vue";
+import SuperLayout from "@/components/SuperLayout.vue";
 import { apiGet, apiSend } from "@/utils/managerApi";
 
 const month = ref(new Date().toISOString().slice(0, 7));

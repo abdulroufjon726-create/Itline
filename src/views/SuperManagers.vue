@@ -1,12 +1,10 @@
 <template>
-  <div class="min-h-screen bg-slate-50 p-4 sm:p-6 font-sans">
-    <SuperNav
-      title="Menejerlar"
-      subtitle="Menejer qo'shish va har biriga vakolat berish"
-    />
-
+  <SuperLayout
+    title="Menejerlar"
+    subtitle="Menejer qo'shish, vakolat berish va parolini tiklash"
+  >
     <!-- ══════════ YANGI MENEJER ══════════ -->
-    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 mb-4">
+    <div class="bg-white rounded-2xl border border-slate-200 p-4 mb-4">
       <div class="flex items-center justify-between gap-3 mb-3">
         <p class="text-sm font-medium text-slate-700">Yangi menejer qo'shish</p>
         <button
@@ -148,6 +146,13 @@
                 <AppIcon name="key" /> Vakolatlar
               </button>
               <button
+                v-if="!m.is_super"
+                @click="openPassword(m)"
+                class="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-500 text-xs hover:bg-slate-50 hover:text-amber-500 transition"
+              >
+                <AppIcon name="lock" /> Parol
+              </button>
+              <button
                 v-if="m.is_active && !m.is_super"
                 @click="deactivate(m)"
                 class="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-400 text-xs hover:bg-rose-50 hover:text-rose-500 hover:border-rose-200 transition"
@@ -221,19 +226,64 @@
       </div>
     </div>
 
+    <!-- ══════════ PAROL MODALI ══════════ -->
+    <div
+      v-if="pwTarget"
+      class="fixed inset-0 bg-slate-900/40 flex items-center justify-center p-4 z-40"
+      @click.self="pwTarget = null"
+    >
+      <div class="bg-white rounded-2xl w-full max-w-sm shadow-xl p-5">
+        <p class="font-semibold text-slate-800">
+          {{ pwTarget.name }} {{ pwTarget.surname }}
+        </p>
+        <p class="text-xs text-slate-400 mt-0.5 mb-4">
+          Yangi parol o'rnatiladi. Eski parol so'ralmaydi — menejer
+          bundan keyin faqat yangisi bilan kira oladi.
+        </p>
+
+        <input
+          v-model="pwValue"
+          type="text"
+          placeholder="Yangi parol"
+          autocomplete="off"
+          @keyup.enter="savePassword"
+          class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-300"
+        />
+        <p v-if="pwValue && pwValue.length < 4" class="text-xs text-rose-500 mt-1.5">
+          Kamida 4 belgi bo'lishi kerak
+        </p>
+
+        <div class="flex gap-2 justify-end mt-4">
+          <button
+            @click="pwTarget = null"
+            class="px-4 py-2 rounded-lg border border-slate-200 text-slate-500 text-sm hover:bg-slate-50"
+          >
+            Bekor
+          </button>
+          <button
+            @click="savePassword"
+            :disabled="busy || pwValue.length < 4"
+            class="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm hover:bg-slate-800 disabled:opacity-40"
+          >
+            <AppIcon name="check" /> O'rnatish
+          </button>
+        </div>
+      </div>
+    </div>
+
     <p
       v-if="toast"
       class="fixed top-4 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-sm px-4 py-2 rounded-lg shadow-lg z-50"
     >
       {{ toast }}
     </p>
-  </div>
+  </SuperLayout>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted, watch } from "vue";
 import AppIcon from "@/components/AppIcon.vue";
-import SuperNav from "@/components/SuperNav.vue";
+import SuperLayout from "@/components/SuperLayout.vue";
 import PermissionPicker from "@/components/PermissionPicker.vue";
 import { apiGet, apiSend } from "@/utils/managerApi";
 
@@ -248,6 +298,9 @@ const showCreate = ref(false);
 
 const editing = ref(null);
 const editPerms = ref([]);
+
+const pwTarget = ref(null);
+const pwValue = ref("");
 
 const form = reactive({
   name: "",
@@ -354,6 +407,32 @@ async function savePerms() {
     await fetchManagers();
   } catch (e) {
     console.error("save permissions:", e);
+    say("Tarmoq xatosi");
+  } finally {
+    busy.value = false;
+  }
+}
+
+function openPassword(m) {
+  pwTarget.value = m;
+  pwValue.value = "";
+}
+
+async function savePassword() {
+  if (pwValue.value.length < 4) return;
+  busy.value = true;
+  try {
+    const { ok, data } = await apiSend(
+      `/super/managers/${pwTarget.value.id}/password/`,
+      "PATCH",
+      { password: pwValue.value },
+    );
+    if (!ok) return say(data.error || "Parol o'zgartirilmadi");
+    say(`${pwTarget.value.name} paroli yangilandi`);
+    pwTarget.value = null;
+    pwValue.value = "";
+  } catch (e) {
+    console.error("set password:", e);
     say("Tarmoq xatosi");
   } finally {
     busy.value = false;

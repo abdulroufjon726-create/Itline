@@ -24,7 +24,7 @@
       </div>
       <router-link
         v-if="isSuperUser"
-        to="/super/managers"
+        to="/super"
         class="px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs hover:bg-slate-800 transition shrink-0"
       >
         O'tish

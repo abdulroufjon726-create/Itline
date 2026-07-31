@@ -11,6 +11,30 @@ html[data-theme] body {
 }
 
 /* ═══════════════════════════════════════════════════════════════
+   YAGONA HOVER VA CHEGARA
+
+   Butun ilovada hover va chegara bitta qiymatdan oladi — shunda
+   sahifadan sahifaga o'tganda ko'rinish o'zgarib ketmaydi.
+
+   Tungi rejimda ikkalasi ham white/10. Kunduzgi rejimda oq qatlam
+   oq fonda ko'rinmasdi, shuning uchun u yerda xuddi shu darajadagi
+   qora qatlam ishlatiladi — natija bir xil "nozik ajratuvchi"
+   effekti, faqat fonga moslashgan.
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  --ui-hover: rgb(15 23 42 / 0.05);
+  --ui-hover-strong: rgb(15 23 42 / 0.09);
+  --ui-border: rgb(15 23 42 / 0.1);
+}
+
+[data-theme="dark"] {
+  --ui-hover: rgb(255 255 255 / 0.1);
+  --ui-hover-strong: rgb(255 255 255 / 0.16);
+  --ui-border: rgb(255 255 255 / 0.1);
+}
+
+/* ═══════════════════════════════════════════════════════════════
    GLOBAL TUNGI REJIM
 
    Sahifalar Tailwind'ning neytral ranglari bilan yozilgan
@@ -64,16 +88,12 @@ html[data-theme] body {
 [data-theme="dark"] .bg-black {
   background-color: #4f46e5;
 }
+/* To'q (asosiy) tugmalar tungi rejimda indigo bo'ladi — ularning
+   hoveri shaffof emas, yorqinroq indigo bo'lishi kerak */
 [data-theme="dark"] .hover\:bg-gray-700:hover,
 [data-theme="dark"] .hover\:bg-gray-800:hover,
 [data-theme="dark"] .hover\:bg-slate-800:hover {
   background-color: #6366f1;
-}
-[data-theme="dark"] .hover\:bg-gray-50:hover,
-[data-theme="dark"] .hover\:bg-gray-100:hover,
-[data-theme="dark"] .hover\:bg-slate-50:hover,
-[data-theme="dark"] .hover\:bg-slate-100:hover {
-  background-color: var(--d-surface-2);
 }
 
 /* Rangli och fonlar (bg-red-50 kabi) — tungi rejimda shaffof tint */
@@ -140,28 +160,60 @@ html[data-theme] body {
 [data-theme="dark"] .text-purple-700  { color: #d8b4fe; }
 
 /* ── Chegaralar ───────────────────────────────────────────── */
-[data-theme="dark"] .border-gray-100,
-[data-theme="dark"] .border-gray-200,
-[data-theme="dark"] .border-gray-300,
-[data-theme="dark"] .border-slate-100,
-[data-theme="dark"] .border-slate-200,
-[data-theme="dark"] .border-slate-300,
-[data-theme="dark"] .border-white {
-  border-color: var(--d-border);
+/* Barcha neytral chegaralar bitta qiymatdan — tungi rejimda
+   white/10, kunduzgi rejimda unga teng qora qatlam */
+.border-gray-100,
+.border-gray-200,
+.border-gray-300,
+.border-slate-100,
+.border-slate-200,
+.border-slate-300,
+.border-neutral-100,
+.border-neutral-200,
+.border-white,
+.border-white\/20,
+.border-white\/10 {
+  border-color: var(--ui-border);
 }
+.divide-gray-100 > * + *,
+.divide-gray-200 > * + *,
+.divide-slate-100 > * + *,
+.divide-slate-200 > * + *,
+.divide-slate-50 > * + * {
+  border-color: var(--ui-border);
+}
+.hover\:border-gray-300:hover,
+.hover\:border-slate-300:hover,
+.hover\:border-gray-200:hover,
+.hover\:border-slate-200:hover {
+  border-color: var(--ui-hover-strong);
+}
+
+/* Asosiy (to'q) tugma chegarasi — u fon rangiga ergashadi */
 [data-theme="dark"] .border-gray-900,
 [data-theme="dark"] .border-black {
   border-color: #4f46e5;
 }
-[data-theme="dark"] .hover\:border-gray-300:hover,
-[data-theme="dark"] .hover\:border-slate-300:hover {
-  border-color: #3d4d6e;
+
+/* ── Hover fonlari ────────────────────────────────────────── */
+/* Neytral hoverlar — kartalar, jadval qatorlari, menyu elementlari */
+.hover\:bg-gray-50:hover,
+.hover\:bg-gray-100:hover,
+.hover\:bg-slate-50:hover,
+.hover\:bg-slate-100:hover,
+.hover\:bg-neutral-50:hover,
+.hover\:bg-white\/10:hover,
+.hover\:bg-white\/5:hover,
+.hover\:bg-slate-50\/50:hover,
+.hover\:bg-slate-50\/70:hover {
+  background-color: var(--ui-hover);
 }
-[data-theme="dark"] .divide-gray-100 > * + *,
-[data-theme="dark"] .divide-gray-200 > * + *,
-[data-theme="dark"] .divide-slate-100 > * + *,
-[data-theme="dark"] .divide-slate-200 > * + * {
-  border-color: var(--d-border);
+
+/* Jadval qatori ustiga kelganda ham xuddi shu qatlam */
+tbody tr.hover\:bg-gray-50:hover,
+tbody tr.hover\:bg-slate-50:hover,
+tbody tr.hover\:bg-white\/10:hover {
+  background-color: var(--ui-hover);
 }
 
 /* ── Forma elementlari ────────────────────────────────────── */

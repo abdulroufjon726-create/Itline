@@ -103,7 +103,7 @@ const MORE_LINKS = computed(() => {
   // Supermenejer uchun o'z bo'limiga o'tish havolasi
   if (isSuperUser) {
     links.push({
-      to: "/super/managers",
+      to: "/super",
       icon: "key",
       label: "Supermenejer bo'limi",
     });
