@@ -27,7 +27,7 @@
         <label
           v-for="item in section.items"
           :key="item.key"
-          class="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-slate-50/60 transition select-none"
+          class="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-white/10 transition select-none"
         >
           <input
             type="checkbox"

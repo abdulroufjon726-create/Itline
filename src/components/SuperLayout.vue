@@ -4,16 +4,11 @@
     <!-- Yig'ilganda faqat ikonkalar qoladi; tanlov localStorage'da
          saqlanadi, shuning uchun sahifa almashganda ham o'sha holatda
          qoladi -->
-    <aside
-      :class="[
-        'hidden lg:flex flex-col shrink-0 border-r border-slate-200 bg-white sticky top-0 h-screen transition-[width] duration-200',
-        collapsed ? 'w-[68px]' : 'w-60',
-      ]"
-    >
-      <div
-        class="p-4 flex items-center gap-2.5"
-        :class="collapsed ? 'justify-center' : ''"
-      >
+    <aside :class="[
+      'hidden lg:flex flex-col shrink-0 border-r rounded-2xl border-slate-200 bg-white sticky top-0 h-screen transition-[width] duration-200',
+      collapsed ? 'w-[68px]' : 'w-60',
+    ]">
+      <div class="p-4 flex items-center gap-2.5" :class="collapsed ? 'justify-center' : ''">
         <img src="../icon/itline.png" alt="" class="w-9 rounded-full shrink-0" />
         <div v-if="!collapsed" class="min-w-0 flex-1">
           <p class="text-sm font-semibold text-slate-800 leading-tight">ITLINE</p>
@@ -21,82 +16,55 @@
         </div>
       </div>
 
+
       <nav class="flex-1 px-2.5 space-y-0.5 overflow-y-auto">
-        <router-link
-          v-for="l in links"
-          :key="l.to"
-          :to="l.to"
-          :title="collapsed ? l.label : ''"
-          :class="[
-            'flex items-center gap-2.5 py-2.5 rounded-xl text-sm transition relative',
-            collapsed ? 'px-0 justify-center' : 'px-3',
-            isActive(l)
-              ? 'bg-slate-900 text-white'
-              : 'text-slate-500 hover:bg-slate-50',
-          ]"
-        >
+        <button @click="toggleCollapsed" :title="collapsed ? 'Menyuni ochish' : 'Menyuni yig\'ish'"
+          :class="[navBtn, 'mt-1 border-t border-slate-200 pt-3 rounded-none']">
+          <AppIcon :name="collapsed ? 'chevron-right' : 'chevron-left'" class="shrink-0" />
+          <span v-if="!collapsed">Yig'ish</span>
+        </button>
+        <router-link v-for="l in links" :key="l.to" :to="l.to" :title="collapsed ? l.label : ''" :class="[
+          'flex items-center gap-2.5 py-2.5 rounded-xl text-sm transition relative',
+          collapsed ? 'px-0 justify-center' : 'px-3',
+          isActive(l)
+            ? 'bg-slate-900 text-white'
+            : 'text-slate-500 hover:bg-slate-50',
+        ]">
           <AppIcon :name="l.icon" class="shrink-0" />
           <span v-if="!collapsed" class="truncate">{{ l.label }}</span>
-          <span
-            v-if="l.badge"
-            :class="[
-              'min-w-[18px] h-[18px] px-1 inline-flex items-center justify-center rounded-full bg-rose-500 text-white text-[10px] font-bold',
-              collapsed ? 'absolute top-1 right-1' : 'ml-auto',
-            ]"
-          >
+          <span v-if="l.badge" :class="[
+            'min-w-[18px] h-[18px] px-1 inline-flex items-center justify-center rounded-full bg-rose-500 text-white text-[10px] font-bold',
+            collapsed ? 'absolute top-1 right-1' : 'ml-auto',
+          ]">
             {{ l.badge }}
           </span>
         </router-link>
       </nav>
 
       <div class="p-2.5 border-t border-slate-200 space-y-0.5">
-        <button
-          @click="toggleTheme"
-          :title="collapsed ? (theme === 'dark' ? 'Kunduzgi rejim' : 'Tungi rejim') : ''"
-          :class="navBtn"
-        >
+        <button @click="toggleTheme" :title="collapsed ? (theme === 'dark' ? 'Kunduzgi rejim' : 'Tungi rejim') : ''"
+          :class="navBtn">
           <AppIcon :name="theme === 'dark' ? 'sun' : 'moon'" class="shrink-0" />
           <span v-if="!collapsed">
             {{ theme === "dark" ? "Kunduzgi" : "Tungi" }} rejim
           </span>
         </button>
-        <router-link
-          to="/excellence"
-          :title="collapsed ? 'Menejer paneli' : ''"
-          :class="navBtn"
-        >
+        <router-link to="/excellence" :title="collapsed ? 'Menejer paneli' : ''" :class="navBtn">
           <AppIcon name="briefcase" class="shrink-0" />
           <span v-if="!collapsed">Menejer paneli</span>
         </router-link>
-        <button
-          @click="logout"
-          :title="collapsed ? 'Chiqish' : ''"
-          :class="[navBtn, 'hover:text-rose-500']"
-        >
+        <button @click="logout" :title="collapsed ? 'Chiqish' : ''" :class="[navBtn, 'hover:text-rose-500']">
           <AppIcon name="logout" class="shrink-0" />
           <span v-if="!collapsed">Chiqish</span>
         </button>
 
-        <button
-          @click="toggleCollapsed"
-          :title="collapsed ? 'Menyuni ochish' : 'Menyuni yig\'ish'"
-          :class="[navBtn, 'mt-1 border-t border-slate-200 pt-3 rounded-none']"
-        >
-          <AppIcon
-            :name="collapsed ? 'chevron-right' : 'chevron-left'"
-            class="shrink-0"
-          />
-          <span v-if="!collapsed">Yig'ish</span>
-        </button>
       </div>
     </aside>
 
     <!-- ══════════ ASOSIY QISM ══════════ -->
     <div class="flex-1 min-w-0 flex flex-col">
       <!-- Mobil sarlavha -->
-      <header
-        class="lg:hidden sticky top-0 z-20 bg-white/80 backdrop-blur border-b border-slate-200"
-      >
+      <header class="lg:hidden sticky top-0 z-20 bg-white/80 backdrop-blur border-b border-slate-200">
         <div class="flex items-center gap-2 px-4 py-3">
           <img src="../icon/itline.png" alt="" class="w-8 rounded-full" />
           <div class="flex-1 min-w-0">
@@ -105,36 +73,24 @@
             </p>
             <p class="text-[11px] text-violet-600 leading-tight">supermenejer</p>
           </div>
-          <button
-            @click="toggleTheme"
-            class="p-2 rounded-lg text-slate-400 hover:bg-slate-50 transition"
-          >
+          <button @click="toggleTheme" class="p-2 rounded-lg text-slate-400 hover:bg-slate-50 transition">
             <AppIcon :name="theme === 'dark' ? 'sun' : 'moon'" />
           </button>
-          <button
-            @click="logout"
-            class="p-2 rounded-lg text-slate-400 hover:bg-slate-50 hover:text-rose-500 transition"
-          >
+          <button @click="logout"
+            class="p-2 rounded-lg text-slate-400 hover:bg-slate-50 hover:text-rose-500 transition">
             <AppIcon name="logout" />
           </button>
         </div>
         <div class="flex gap-1.5 px-3 pb-2.5 overflow-x-auto">
-          <router-link
-            v-for="l in links"
-            :key="l.to"
-            :to="l.to"
-            :class="[
-              'px-3 py-1.5 rounded-full text-xs whitespace-nowrap transition flex items-center gap-1.5 shrink-0',
-              isActive(l)
-                ? 'bg-slate-900 text-white'
-                : 'border border-slate-200 text-slate-500 hover:bg-slate-50',
-            ]"
-          >
+          <router-link v-for="l in links" :key="l.to" :to="l.to" :class="[
+            'px-3 py-1.5 rounded-full text-xs whitespace-nowrap transition flex items-center gap-1.5 shrink-0',
+            isActive(l)
+              ? 'bg-slate-900 text-white'
+              : 'border border-slate-200 text-slate-500 hover:bg-slate-50',
+          ]">
             <AppIcon :name="l.icon" /> {{ l.label }}
-            <span
-              v-if="l.badge"
-              class="min-w-[16px] h-[16px] px-1 inline-flex items-center justify-center rounded-full bg-rose-500 text-white text-[10px] font-bold"
-            >
+            <span v-if="l.badge"
+              class="min-w-[16px] h-[16px] px-1 inline-flex items-center justify-center rounded-full bg-rose-500 text-white text-[10px] font-bold">
               {{ l.badge }}
             </span>
           </router-link>

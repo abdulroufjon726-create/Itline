@@ -9,7 +9,7 @@
         <p class="text-sm font-medium text-slate-700">Yangi menejer qo'shish</p>
         <button
           @click="showCreate = !showCreate"
-          class="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-500 text-xs hover:bg-slate-50 transition"
+          class="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-500 text-xs  transition"
         >
           <AppIcon :name="showCreate ? 'x' : 'plus'" />
           {{ showCreate ? "Yopish" : "Qo'shish" }}
@@ -53,13 +53,13 @@
             <div class="flex gap-2 shrink-0">
               <button
                 @click="selectAllCreate"
-                class="px-2.5 py-1 rounded-lg border border-slate-200 text-slate-500 text-xs hover:bg-slate-50"
+                class="px-2.5 py-1 rounded-lg border border-slate-200 text-slate-500 text-xs "
               >
                 Hammasi
               </button>
               <button
                 @click="form.permissions = []"
-                class="px-2.5 py-1 rounded-lg border border-slate-200 text-slate-500 text-xs hover:bg-slate-50"
+                class="px-2.5 py-1 rounded-lg border border-slate-200 text-slate-500 text-xs "
               >
                 Tozalash
               </button>
@@ -141,14 +141,14 @@
               <button
                 v-if="!m.is_super"
                 @click="openPerms(m)"
-                class="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-500 text-xs hover:bg-slate-50 hover:text-indigo-500 transition"
+                class="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-500 text-xs  hover:text-indigo-500 transition"
               >
                 <AppIcon name="key" /> Vakolatlar
               </button>
               <button
                 v-if="!m.is_super"
                 @click="openPassword(m)"
-                class="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-500 text-xs hover:bg-slate-50 hover:text-amber-500 transition"
+                class="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-500 text-xs  hover:text-amber-500 transition"
               >
                 <AppIcon name="lock" /> Parol
               </button>
@@ -179,7 +179,7 @@
       @click.self="editing = null"
     >
       <div
-        class="bg-white rounded-t-2xl sm:rounded-2xl w-full max-w-2xl shadow-xl max-h-[88vh] flex flex-col"
+        class="bg-black/80 rounded-t-2xl sm:rounded-2xl w-full max-w-2xl shadow-xl max-h-[88vh] flex flex-col"
       >
         <div class="p-4 border-b border-slate-100 flex items-center gap-3">
           <div class="flex-1 min-w-0">
@@ -192,13 +192,13 @@
           </div>
           <button
             @click="selectAllEdit"
-            class="px-2.5 py-1 rounded-lg border border-slate-200 text-slate-500 text-xs hover:bg-slate-50 shrink-0"
+            class="px-2.5 py-1 rounded-lg border border-slate-200 text-slate-500 text-xs  shrink-0"
           >
             Hammasi
           </button>
           <button
             @click="editPerms = []"
-            class="px-2.5 py-1 rounded-lg border border-slate-200 text-slate-500 text-xs hover:bg-slate-50 shrink-0"
+            class="px-2.5 py-1 rounded-lg border border-slate-200 text-slate-500 text-xs  shrink-0"
           >
             Tozalash
           </button>
@@ -211,7 +211,7 @@
         <div class="p-4 border-t border-slate-100 flex gap-2 justify-end">
           <button
             @click="editing = null"
-            class="px-4 py-2 rounded-lg border border-slate-200 text-slate-500 text-sm hover:bg-slate-50"
+            class="px-4 py-2 rounded-lg border border-slate-200 text-slate-500 text-sm "
           >
             Bekor
           </button>
@@ -256,7 +256,7 @@
         <div class="flex gap-2 justify-end mt-4">
           <button
             @click="pwTarget = null"
-            class="px-4 py-2 rounded-lg border border-slate-200 text-slate-500 text-sm hover:bg-slate-50"
+            class="px-4 py-2 rounded-lg border border-slate-200 text-slate-500 text-sm "
           >
             Bekor
           </button>
