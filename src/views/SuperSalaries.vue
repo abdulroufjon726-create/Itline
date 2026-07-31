@@ -1,9 +1,8 @@
 <template>
   <SuperLayout
     title="Ustoz oyliklari"
-    subtitle="Default oylik — stavka × o'quvchilar soni. To'landi bosilganda moliyadagi chiqimlarga avtomatik yoziladi"
+    subtitle="Oylik avtomatik hisoblanadi. To'landi bosilganda moliyadagi chiqimlarga o'zi yoziladi"
   >
-
     <!-- ══════════ OY + JAMI ══════════ -->
     <div class="flex flex-col sm:flex-row sm:items-end gap-3 mb-4">
       <div>
@@ -16,11 +15,93 @@
       </div>
       <div class="flex-1"></div>
       <button
+        @click="showBulk = !showBulk"
+        class="px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-500 text-xs hover:bg-slate-50 transition shrink-0"
+      >
+        <AppIcon name="users" /> Hammasiga birdan
+      </button>
+      <button
         @click="load"
         class="px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-500 text-xs hover:bg-slate-50 transition shrink-0"
       >
         <AppIcon name="refresh" /> Yangilash
       </button>
+    </div>
+
+    <!-- ══════════ SOZLANMAGANLAR OGOHLANTIRISHI ══════════ -->
+    <div
+      v-if="!loading && unconfigured.length"
+      class="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4"
+    >
+      <p class="text-sm font-medium text-amber-800 mb-1">
+        <AppIcon name="warning" />
+        {{ unconfigured.length }} ta ustozning oyligi sozlanmagan
+      </p>
+      <p class="text-xs text-amber-700">
+        Oylik o'zi hisoblanishi uchun har ustozga stavka (1 o'quvchi uchun
+        summa) yoki foiz kiritilishi kerak. Kiritilmaguncha oylik 0 bo'lib
+        turadi. Hammasiga bir xil qiymat berish uchun yuqoridagi
+        <span class="font-medium">«Hammasiga birdan»</span> tugmasidan
+        foydalaning.
+      </p>
+    </div>
+
+    <!-- ══════════ HAMMASIGA BIRDAN ══════════ -->
+    <div
+      v-if="showBulk"
+      class="bg-white rounded-2xl border border-slate-200 p-4 mb-4"
+    >
+      <p class="text-sm font-medium text-slate-700 mb-3">
+        Barcha {{ rows.length }} ta ustozga bir xil sozlama
+      </p>
+
+      <div class="flex flex-col sm:flex-row gap-3 sm:items-end">
+        <div>
+          <label class="block text-xs text-slate-400 mb-1.5">Usul</label>
+          <div class="flex rounded-lg border border-slate-200 overflow-hidden">
+            <button
+              v-for="m in MODES"
+              :key="m.value"
+              @click="bulk.mode = m.value"
+              :class="[
+                'px-3 py-2 text-xs transition',
+                bulk.mode === m.value
+                  ? 'bg-slate-900 text-white'
+                  : 'text-slate-500 hover:bg-slate-50',
+              ]"
+            >
+              {{ m.short }}
+            </button>
+          </div>
+        </div>
+
+        <div class="flex-1 min-w-0">
+          <label class="block text-xs text-slate-400 mb-1.5">
+            {{ bulk.mode === "percent" ? "Foiz (%)" : "1 o'quvchi uchun (so'm)" }}
+          </label>
+          <input
+            v-model.number="bulk.value"
+            type="number"
+            min="0"
+            :max="bulk.mode === 'percent' ? 100 : undefined"
+            :placeholder="bulk.mode === 'percent' ? '30' : '15000'"
+            class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-300 tabular-nums"
+          />
+        </div>
+
+        <button
+          @click="applyBulk"
+          :disabled="busy || !bulk.value"
+          class="px-5 py-2 rounded-lg bg-slate-900 text-white text-sm hover:bg-slate-800 disabled:opacity-40 shrink-0"
+        >
+          <AppIcon name="check" /> Qo'llash
+        </button>
+      </div>
+
+      <p class="text-[11px] text-slate-400 mt-2">
+        Bu barcha ustozlarga qo'llanadi. Keyin ayrimlarini jadvalda
+        alohida o'zgartirsangiz bo'ladi. To'langan oyliklar tegilmaydi.
+      </p>
     </div>
 
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
@@ -64,10 +145,10 @@
           <tr class="bg-slate-50/70 border-b border-slate-100">
             <th class="text-left px-4 py-3 text-xs text-slate-400 font-medium">Ustoz</th>
             <th class="text-left px-4 py-3 text-xs text-slate-400 font-medium">
-              Stavka (1 o'quvchi)
+              Hisoblash usuli
             </th>
             <th class="text-left px-4 py-3 text-xs text-slate-400 font-medium">
-              O'quvchi
+              Asos
             </th>
             <th class="text-left px-4 py-3 text-xs text-slate-400 font-medium">
               Oylik
@@ -102,21 +183,76 @@
                 </div>
               </td>
 
-              <!-- Stavka -->
+              <!-- Hisoblash usuli: summa yoki foiz -->
               <td class="px-4 py-3">
-                <input
-                  type="number"
-                  min="0"
-                  :value="r.salary_per_student"
-                  @change="saveRate(r, $event.target.value)"
-                  :disabled="r.is_paid"
-                  class="w-28 border border-slate-200 rounded-lg px-2 py-1 text-sm outline-none focus:border-indigo-300 tabular-nums disabled:bg-slate-50 disabled:text-slate-400"
-                />
+                <div class="flex items-center gap-2">
+                  <div
+                    class="flex rounded-lg border border-slate-200 overflow-hidden shrink-0"
+                  >
+                    <button
+                      v-for="m in MODES"
+                      :key="m.value"
+                      @click="saveSettings(r, { salary_mode: m.value })"
+                      :disabled="r.is_paid"
+                      :title="m.label"
+                      :class="[
+                        'px-2 py-1 text-xs transition disabled:opacity-40',
+                        r.salary_mode === m.value
+                          ? 'bg-slate-900 text-white'
+                          : 'text-slate-500 hover:bg-slate-50',
+                      ]"
+                    >
+                      {{ m.short }}
+                    </button>
+                  </div>
+
+                  <input
+                    v-if="r.salary_mode === 'percent'"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.5"
+                    :value="r.salary_percent"
+                    @change="
+                      saveSettings(r, { salary_percent: $event.target.value })
+                    "
+                    :disabled="r.is_paid"
+                    placeholder="30"
+                    class="w-20 border rounded-lg px-2 py-1 text-sm outline-none focus:border-indigo-300 tabular-nums disabled:bg-slate-50 disabled:text-slate-400"
+                    :class="r.is_configured ? 'border-slate-200' : 'border-amber-300 bg-amber-50'"
+                  />
+                  <input
+                    v-else
+                    type="number"
+                    min="0"
+                    :value="r.salary_per_student"
+                    @change="
+                      saveSettings(r, { salary_per_student: $event.target.value })
+                    "
+                    :disabled="r.is_paid"
+                    placeholder="15000"
+                    class="w-28 border rounded-lg px-2 py-1 text-sm outline-none focus:border-indigo-300 tabular-nums disabled:bg-slate-50 disabled:text-slate-400"
+                    :class="r.is_configured ? 'border-slate-200' : 'border-amber-300 bg-amber-50'"
+                  />
+                </div>
               </td>
 
-              <!-- O'quvchilar soni -->
-              <td class="px-4 py-3 tabular-nums text-slate-500">
-                {{ r.students_count }}
+              <!-- Nimadan hisoblanayotgani -->
+              <td class="px-4 py-3">
+                <p class="tabular-nums text-slate-600">
+                  {{
+                    r.salary_mode === "percent"
+                      ? money(r.collected)
+                      : r.students_count + " o'quvchi"
+                  }}
+                </p>
+                <p class="text-[11px] text-slate-400">
+                  {{
+                    r.salary_mode === "percent"
+                      ? "shu oy yig'ilgan"
+                      : "biriktirilgan"
+                  }}
+                </p>
               </td>
 
               <!-- Oylik: default yoki qo'lda -->
@@ -302,7 +438,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch } from "vue";
+import { ref, reactive, computed, onMounted, watch } from "vue";
 import AppIcon from "@/components/AppIcon.vue";
 import SuperLayout from "@/components/SuperLayout.vue";
 import { apiGet, apiSend } from "@/utils/managerApi";
@@ -319,6 +455,19 @@ const loading = ref(true);
 const busy = ref(false);
 const toast = ref("");
 const expanded = ref(new Set());
+
+// Oylik ikki xil hisoblanadi: har o'quvchi uchun qat'iy summa, yoki
+// o'sha ustozning o'quvchilaridan shu oy yig'ilgan puldan foiz
+const MODES = [
+  { value: "per_student", short: "so'm", label: "O'quvchi soniga qarab" },
+  { value: "percent", short: "%", label: "Yig'ilgan puldan foiz" },
+];
+
+const showBulk = ref(false);
+const bulk = reactive({ mode: "per_student", value: null });
+
+// Stavkasi ham, foizi ham qo'yilmagan ustozlar — oyligi 0 bo'lib turadi
+const unconfigured = computed(() => rows.value.filter((r) => !r.is_configured));
 
 const advanceFor = ref(null);
 const advanceForm = reactive({ amount: null, note: "" });
@@ -386,21 +535,56 @@ async function load() {
   }
 }
 
-async function saveRate(row, value) {
-  const rate = Number(value) || 0;
-  if (rate === row.salary_per_student) return;
+/** Usul / stavka / foizni saqlaydi va qatorni serverdan yangilaydi. */
+async function saveSettings(row, patch) {
+  // Bir xil qiymat qayta yuborilmasin
+  const key = Object.keys(patch)[0];
+  const next = key === "salary_mode" ? patch[key] : Number(patch[key]) || 0;
+  if (next === row[key]) return;
+
   busy.value = true;
   try {
     const { ok, data } = await apiSend(
       `/super/salaries/${row.teacher_id}/rate/`,
       "PATCH",
-      { salary_per_student: rate },
+      { ...patch, month: month.value },
     );
     if (!ok) return say(data.error || "Saqlanmadi");
-    // Stavka o'zgargani uchun default oylik ham o'zgaradi — qatorni
-    // serverdan qayta olamiz
+    // Sozlama o'zgargani uchun default oylik ham o'zgaradi — butun
+    // ro'yxatni serverdan qayta olamiz (jami summalar ham yangilansin)
     await load();
-    say(`${row.teacher_name} stavkasi yangilandi`);
+    say(`${row.teacher_name} oyligi qayta hisoblandi`);
+  } finally {
+    busy.value = false;
+  }
+}
+
+/** Bir xil sozlamani barcha ustozlarga qo'yadi. */
+async function applyBulk() {
+  const value = Number(bulk.value) || 0;
+  if (!value) return;
+  if (
+    !confirm(
+      `Barcha ${rows.value.length} ta ustozga ` +
+        (bulk.mode === "percent"
+          ? `${value}% qo'yilsinmi?`
+          : `har o'quvchi uchun ${money(value)} qo'yilsinmi?`),
+    )
+  )
+    return;
+
+  busy.value = true;
+  try {
+    const body = { salary_mode: bulk.mode };
+    if (bulk.mode === "percent") body.salary_percent = value;
+    else body.salary_per_student = value;
+
+    const { ok, data } = await apiSend("/super/salaries/bulk/", "PATCH", body);
+    if (!ok) return say(data.error || "Saqlanmadi");
+    say(`${data.updated} ta ustozga qo'llandi`);
+    showBulk.value = false;
+    bulk.value = null;
+    await load();
   } finally {
     busy.value = false;
   }
