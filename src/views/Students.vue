@@ -7,6 +7,7 @@ import LessonsPlans from "./LessonsPlans.vue";
 import AppIcon from "@/components/AppIcon.vue";
 import PaymentCard from "@/components/PaymentCard.vue";
 import StudentPayNow from "@/components/StudentPayNow.vue";
+import { authHeaders } from "@/utils/managerApi";
 
 const router = useRouter();
 const API = "https://itline-django-9s85.onrender.com/api";
@@ -151,7 +152,8 @@ async function fetchWallet() {
 
 async function fetchGroups() {
   try {
-    const res = await fetch(`${API}/groups/`);
+    // Ustoz uchun server allaqachon faqat o'z guruhlarini qaytaradi
+    const res = await fetch(`${API}/groups/`, { headers: authHeaders() });
     const all = await res.json();
     groups.value = all.filter((g) => g.teacher === user.teacher_id || g.teacher?.id === user.teacher_id);
     if (!user.is_admin && user.id) {

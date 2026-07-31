@@ -1,30 +1,11 @@
 <template>
   <div class="min-h-screen bg-slate-50 p-4 sm:p-6 font-sans">
     <!-- Header -->
-    <div class="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-      <div>
-        <div class="flex items-center gap-2 mb-4">
-          <div class="pl-4">
-            <img src="../icon/itline.png" alt="" class="w-10 rounded-full animate-spin"
-              style="animation-duration: 5s" />
-          </div>
-          <h1 class="text-xl sm:text-2xl font-sans text-slate-800 tracking-tight">
-            Finance
-          </h1>
-        </div>
-        <p class="text-sm text-slate-400 ml-3.5">
-          To'lovlar va xarajatlar monitoringi
-        </p>
-      </div>
-      <div class="flex items-center gap-3 w-full sm:w-auto">
-        <input type="month" v-model="selectedMonth"
-          class="flex-1 sm:flex-none border border-white/20 bg-white rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-300 shadow-sm" />
-        <router-link to="/excellence"
-          class="flex items-center justify-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 active:scale-95 text-slate-500 hover:text-rose-500 text-sm font-medium rounded-lg border border-white/20 shadow-sm transition-all duration-150 shrink-0">
-          <BackIcon width="10px" />
-          <span class="hidden sm:inline">Asosiy sahifa</span>
-        </router-link>
-      </div>
+    <SuperNav title="Moliya" subtitle="To'lovlar va xarajatlar monitoringi" />
+
+    <div class="flex justify-end mb-4">
+      <input type="month" v-model="selectedMonth"
+        class="border border-slate-200 bg-white rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-300 shadow-sm" />
     </div>
 
     <!-- Loading -->
@@ -469,10 +450,13 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
-import BackIcon from '@iconify-vue/fluent-mdl2/back';
 import AppIcon from "@/components/AppIcon.vue";
+import SuperNav from "@/components/SuperNav.vue";
+import { API, authHeaders } from "@/utils/managerApi";
 
-const API = "https://itline-django-9s85.onrender.com/api";
+// Moliya supermenejer bo'limi — so'rovlarga 'X-User-Phone' qo'shilmasa
+// backend 403 qaytaradi
+const jsonHeaders = () => authHeaders({ "Content-Type": "application/json" });
 
 const payments = ref([]);
 const expenses = ref([]);
@@ -610,7 +594,9 @@ const showToast = (message, type = "success") => {
 // ── API calls ──
 const loadPayments = async () => {
   try {
-    const res = await fetch(`${API}/payments/?month=${selectedMonth.value}`);
+    const res = await fetch(`${API}/payments/?month=${selectedMonth.value}`, {
+      headers: authHeaders(),
+    });
     if (!res.ok) throw new Error();
     payments.value = await res.json();
   } catch (err) {
@@ -622,7 +608,9 @@ const loadPayments = async () => {
 
 const loadExpenses = async () => {
   try {
-    const res = await fetch(`${API}/expenses/?month=${selectedMonth.value}`);
+    const res = await fetch(`${API}/expenses/?month=${selectedMonth.value}`, {
+      headers: authHeaders(),
+    });
     if (!res.ok) throw new Error();
     expenses.value = await res.json();
   } catch (err) {
@@ -636,6 +624,7 @@ const loadSummary = async () => {
   try {
     const res = await fetch(
       `${API}/finance-summary/?month=${selectedMonth.value}`,
+      { headers: authHeaders() },
     );
     if (!res.ok) throw new Error();
     summary.value = await res.json();
@@ -683,7 +672,7 @@ async function submitExpense() {
   try {
     const res = await fetch(`${API}/expenses/create/`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: jsonHeaders(),
       body: JSON.stringify({
         title: expenseForm.value.title.trim(),
         amount: expenseForm.value.amount,
@@ -720,6 +709,7 @@ async function removeExpense(id) {
   try {
     const res = await fetch(`${API}/expenses/${id}/delete/`, {
       method: "DELETE",
+      headers: authHeaders(),
     });
     if (!res.ok) throw new Error();
     expenses.value = expenses.value.filter((e) => e.id !== id);

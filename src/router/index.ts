@@ -84,7 +84,12 @@ const routes = [
     meta: { requiresAuth: true, requiresAdmin: true },
   },
 
-  { path: "/finance", component: () => import("@/views/Finance.vue") },
+  // Moliya supermenejerga o'tkazildi — menejer bu bo'limni ko'rmaydi
+  {
+    path: "/finance",
+    component: () => import("@/views/Finance.vue"),
+    meta: { requiresAuth: true, requiresSuper: true },
+  },
 
   {
     path: "/database",
@@ -113,6 +118,27 @@ const routes = [
     path: "/manager/managers",
     component: lazy("ManagerManagers"),
     meta: { requiresAuth: true, requiresManager: true },
+  },
+
+  // ─── Supermenejer paneli ───
+  {
+    path: "/super",
+    redirect: "/super/managers",
+  },
+  {
+    path: "/super/managers",
+    component: lazy("SuperManagers"),
+    meta: { requiresAuth: true, requiresSuper: true },
+  },
+  {
+    path: "/super/salaries",
+    component: lazy("SuperSalaries"),
+    meta: { requiresAuth: true, requiresSuper: true },
+  },
+  {
+    path: "/super/devices",
+    component: lazy("SuperDevices"),
+    meta: { requiresAuth: true, requiresSuper: true },
   },
 ];
 
@@ -150,6 +176,12 @@ router.beforeEach((to, from) => {
   // Menejer paneli — menejerlar uchun. Ustozlar ham admin hisoblanadi,
   // shuning uchun ular ham kira oladi
   if (to.meta.requiresManager && user?.role !== "manager" && !user?.is_admin) {
+    return { path: "/" };
+  }
+
+  // Supermenejer bo'limi — moliya, ustoz oyliklari, menejerlar va
+  // qurilmalar. Oddiy menejer bu sahifalarga umuman kirmaydi.
+  if (to.meta.requiresSuper && !user?.is_super) {
     return { path: "/" };
   }
 

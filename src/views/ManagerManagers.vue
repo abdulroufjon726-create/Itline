@@ -2,42 +2,33 @@
   <div class="min-h-screen bg-slate-50 p-4 sm:p-6 font-sans">
     <ManagerNav
       title="Menejerlar"
-      subtitle="Menejer qo'shish, telefon raqamni tahrirlash va o'chirish"
+      subtitle="Telefon raqamni tahrirlash va o'chirish"
     />
 
-    <!-- ══════════ YANGI MENEJER ══════════ -->
-    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 mb-4">
-      <p class="text-sm font-medium text-slate-700 mb-3">Yangi menejer qo'shish</p>
-      <div class="flex flex-col sm:flex-row gap-3">
-        <input
-          v-model="form.name"
-          placeholder="Ism"
-          class="flex-1 border border-slate-200 bg-slate-50 focus:bg-white rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-300"
-        />
-        <input
-          v-model="form.surname"
-          placeholder="Familiya"
-          class="flex-1 border border-slate-200 bg-slate-50 focus:bg-white rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-300"
-        />
-        <input
-          v-model="form.phone"
-          placeholder="Telefon"
-          class="flex-1 border border-slate-200 bg-slate-50 focus:bg-white rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-300 tabular-nums"
-        />
-        <input
-          v-model="form.password"
-          type="password"
-          placeholder="Parol"
-          class="flex-1 border border-slate-200 bg-slate-50 focus:bg-white rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-300"
-        />
-        <button
-          @click="createManager"
-          :disabled="!form.name || !form.phone || !form.password || busy"
-          class="px-5 py-2 rounded-lg bg-slate-900 text-white text-sm disabled:opacity-40 hover:bg-slate-800 transition shrink-0"
-        >
-          <AppIcon name="plus" /> Qo'shish
-        </button>
+    <!--
+      Menejer qo'shish bu yerdan olib tashlandi — yangi menejer faqat
+      supermenejer bo'limida, vakolatlari bilan birga yaratiladi.
+    -->
+    <div
+      class="mb-4 rounded-xl border border-slate-200 bg-white px-4 py-3 flex items-start gap-2.5"
+    >
+      <span class="text-slate-400 shrink-0"><AppIcon name="info" /></span>
+      <div class="min-w-0 flex-1">
+        <p class="text-sm text-slate-600">
+          Yangi menejer qo'shish supermenejer bo'limiga o'tkazildi
+        </p>
+        <p class="text-xs text-slate-400 mt-0.5">
+          U yerda menejer yaratilayotganda unga qanday vakolatlar berilishi
+          ham belgilanadi.
+        </p>
       </div>
+      <router-link
+        v-if="isSuperUser"
+        to="/super/managers"
+        class="px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs hover:bg-slate-800 transition shrink-0"
+      >
+        O'tish
+      </router-link>
     </div>
 
     <!-- ══════════ RO'YXAT ══════════ -->
@@ -75,10 +66,15 @@
         >
           <div class="flex flex-col sm:flex-row sm:items-center gap-3">
             <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2">
+              <div class="flex items-center gap-2 flex-wrap">
                 <p class="font-semibold text-slate-800">
                   {{ m.name }} {{ m.surname }}
                 </p>
+                <span
+                  v-if="m.is_super"
+                  class="text-[10px] px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700"
+                  >supermenejer</span
+                >
                 <span
                   v-if="!m.is_active"
                   class="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500"
@@ -117,14 +113,14 @@
                   <AppIcon name="edit" /> Tahrirlash
                 </button>
                 <button
-                  v-if="m.is_active"
+                  v-if="m.is_active && !m.is_super"
                   @click="deactivate(m)"
                   class="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-400 text-xs hover:bg-rose-50 hover:text-rose-500 hover:border-rose-200 transition"
                 >
                   <AppIcon name="trash" />
                 </button>
                 <button
-                  v-else
+                  v-else-if="!m.is_active"
                   @click="reactivate(m)"
                   class="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-400 text-xs hover:bg-emerald-50 hover:text-emerald-600 transition"
                 >
@@ -147,10 +143,10 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch } from "vue";
+import { ref, onMounted, watch } from "vue";
 import AppIcon from "@/components/AppIcon.vue";
 import ManagerNav from "@/components/ManagerNav.vue";
-import { apiGet, apiSend } from "@/utils/managerApi";
+import { apiGet, apiSend, isSuper } from "@/utils/managerApi";
 
 const managers = ref([]);
 const loading = ref(true);
@@ -160,7 +156,7 @@ const showInactive = ref(false);
 const editing = ref(null);
 const editPhone = ref("");
 
-const form = reactive({ name: "", surname: "", phone: "", password: "" });
+const isSuperUser = isSuper();
 
 function say(msg) {
   toast.value = msg;
@@ -210,22 +206,6 @@ function savePhone(m) {
 
 function reactivate(m) {
   return patchManager(m, { is_active: true }, `${m.name} tiklandi`);
-}
-
-async function createManager() {
-  busy.value = true;
-  try {
-    const { ok, data } = await apiSend("/manager/register/", "POST", { ...form });
-    if (!ok) return say(data.error || "Qo'shilmadi");
-    say(`${data.name} qo'shildi`);
-    Object.assign(form, { name: "", surname: "", phone: "", password: "" });
-    await fetchManagers();
-  } catch (e) {
-    console.error("create manager:", e);
-    say("Tarmoq xatosi");
-  } finally {
-    busy.value = false;
-  }
 }
 
 async function deactivate(m) {

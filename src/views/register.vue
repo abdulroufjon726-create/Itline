@@ -4,6 +4,7 @@ import { useRouter } from "vue-router";
 import { useUiStore } from "../stores/uiStore";
 import { normalizePhone } from "../utils/phone";
 import AppIcon from "@/components/AppIcon.vue";
+import { authHeaders } from "@/utils/managerApi";
 
 const API = "https://itline-django-9s85.onrender.com/api";
 const router = useRouter();
@@ -14,6 +15,8 @@ const wrongPass = ref(false);
 const notFound = ref(false);
 const errorFields = ref(new Set());
 const networkError = ref(false);
+// Supermenejer bu qurilmani bloklagan bo'lsa ko'rsatiladigan xabar
+const blockedMsg = ref("");
 
 const form = reactive({
   phone: "",
@@ -21,9 +24,12 @@ const form = reactive({
 });
 
 function redirectUser(user) {
+  // Supermenejer o'z paneliga — moliya, ustoz oyliklari, menejerlar
+  // va qurilmalar faqat o'sha yerda
+  if (user.is_super) router.push("/super/managers");
   // Menejer ham asosiy panelga tushadi — payments, kurslar, guruhlar
   // va qolgan hamma narsa o'sha yerda
-  if (user.is_excellence) router.push("/excellence");
+  else if (user.is_excellence) router.push("/excellence");
   else if (user.is_admin) router.push("/admin");
   else router.push("/students");
 }
@@ -40,6 +46,10 @@ function buildUserPayload(result) {
     is_admin: isManager ? true : result.is_admin ?? false,
     is_excellence: isManager ? true : result.is_excellence ?? false,
     role: result.role ?? "student",
+    // Vakolatlar: supermenejerda cheklov yo'q, oddiy menejerda
+    // supermenejer bergan ro'yxat bo'yicha panel bo'limlari ochiladi
+    is_super: isManager ? !!result.is_super : false,
+    permissions: isManager ? result.permissions ?? [] : [],
   };
 }
 
@@ -54,13 +64,15 @@ function hasError(field) {
 
 async function apiFetch(path, options = {}) {
   try {
+    // Qurilma ID ham yuboriladi — kirish supermenejer ko'radigan
+    // qurilmalar ro'yxatiga yoziladi va bloklangani rad etiladi
     const res = await fetch(`${API}${path}`, {
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders({ "Content-Type": "application/json" }),
       ...options,
     });
     const data = await res.json();
     networkError.value = false;
-    return { ok: res.ok, data };
+    return { ok: res.ok, data, status: res.status };
   } catch {
     networkError.value = true;
     throw new Error("network");
@@ -145,8 +157,9 @@ async function submitLogin() {
   }
 
   ui.start();
+  blockedMsg.value = "";
   try {
-    let { ok, data } = await apiFetch("/login/", {
+    let { ok, data, status } = await apiFetch("/login/", {
       method: "POST",
       body: JSON.stringify({ phone: normalized, password: form.password }),
     });
@@ -161,7 +174,16 @@ async function submitLogin() {
       if (mgr.ok && mgr.data.role === "manager") {
         ok = true;
         data = { ...mgr.data, exists: true };
+      } else if (mgr.status === 403) {
+        status = 403;
+        data = mgr.data;
       }
+    }
+
+    // Qurilma bloklangan — parol to'g'ri bo'lsa ham kiritilmaydi
+    if (status === 403 && data?.error) {
+      blockedMsg.value = data.error;
+      return;
     }
 
     if (ok && data.exists) {
@@ -230,6 +252,18 @@ onMounted(async () => {
         >
           ×
         </button>
+      </div>
+
+      <!-- QURILMA BLOKLANGAN -->
+      <div
+        v-if="blockedMsg"
+        class="mx-8 mb-2 px-3 py-2.5 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-2"
+      >
+        <span class="text-rose-400 shrink-0"><AppIcon name="warning" /></span>
+        <div class="min-w-0">
+          <p class="text-xs font-medium text-rose-600">Qurilma bloklangan</p>
+          <p class="text-xs text-rose-400">{{ blockedMsg }}</p>
+        </div>
       </div>
 
       <!-- BODY -->

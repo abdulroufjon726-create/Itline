@@ -2,6 +2,7 @@
 import { ref, onMounted } from "vue";
 import AppIcon from "@/components/AppIcon.vue";
 import AttendanceBoard from "@/components/AttendanceBoard.vue";
+import { authHeaders } from "@/utils/managerApi";
 
 const API = "https://itline-django-9s85.onrender.com/api";
 const user = JSON.parse(localStorage.getItem("user") || "null");
@@ -23,7 +24,9 @@ async function fetchGroups() {
   }
   loading.value = true;
   try {
-    const res = await fetch(`${API}/groups/`);
+    // Server ustozga faqat o'z guruhlarini qaytaradi; quyidagi filtr
+    // eski javoblar uchun qo'shimcha himoya
+    const res = await fetch(`${API}/groups/`, { headers: authHeaders() });
     const all = await res.json();
     groups.value = (Array.isArray(all) ? all : []).filter(
       (g) => g.teacher === user.teacher_id || g.teacher?.id === user.teacher_id,

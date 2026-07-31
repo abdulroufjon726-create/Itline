@@ -93,6 +93,11 @@ import EyeOff from "~icons/lucide/eye-off";
 import Volume2 from "~icons/lucide/volume-2";
 import VolumeX from "~icons/lucide/volume-x";
 import CircleHelp from "~icons/lucide/circle-help";
+import Monitor from "~icons/lucide/monitor";
+import Smartphone from "~icons/lucide/smartphone";
+import Lock from "~icons/lucide/lock";
+import LockOpen from "~icons/lucide/lock-open";
+import Ban from "~icons/lucide/ban";
 
 const ICONS = {
   // navigatsiya
@@ -169,6 +174,11 @@ const ICONS = {
   "volume-on": Volume2,
   "volume-off": VolumeX,
   help: CircleHelp,
+  monitor: Monitor,
+  mobile: Smartphone,
+  lock: Lock,
+  unlock: LockOpen,
+  ban: Ban,
 };
 
 const props = defineProps({
