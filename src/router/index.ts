@@ -150,6 +150,11 @@ const routes = [
     component: lazy("SuperDevices"),
     meta: { requiresAuth: true, requiresSuper: true },
   },
+  {
+    path: "/super/profile",
+    component: lazy("SuperProfile"),
+    meta: { requiresAuth: true, requiresSuper: true },
+  },
 ];
 
 const router = createRouter({
