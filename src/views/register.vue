@@ -24,9 +24,9 @@ const form = reactive({
 });
 
 function redirectUser(user) {
-  // Supermenejer o'z paneliga — moliya, ustoz oyliklari, menejerlar
-  // va qurilmalar faqat o'sha yerda
-  if (user.is_super) router.push("/super/managers");
+  // Supermenejer o'z bo'limiga — bosh sahifada markaz holati,
+  // menejerlar faolligi va e'tibor talab qiladigan narsalar chiqadi
+  if (user.is_super) router.push("/super");
   // Menejer ham asosiy panelga tushadi — payments, kurslar, guruhlar
   // va qolgan hamma narsa o'sha yerda
   else if (user.is_excellence) router.push("/excellence");

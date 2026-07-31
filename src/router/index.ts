@@ -84,12 +84,9 @@ const routes = [
     meta: { requiresAuth: true, requiresAdmin: true },
   },
 
-  // Moliya supermenejerga o'tkazildi — menejer bu bo'limni ko'rmaydi
-  {
-    path: "/finance",
-    component: () => import("@/views/Finance.vue"),
-    meta: { requiresAuth: true, requiresSuper: true },
-  },
+  // Moliya supermenejer bo'limiga ko'chdi. Eski havolalar ishlashda
+  // davom etsin — /finance yangi manzilga yo'naltiradi.
+  { path: "/finance", redirect: "/super/finance" },
 
   {
     path: "/database",
@@ -120,10 +117,18 @@ const routes = [
     meta: { requiresAuth: true, requiresManager: true },
   },
 
-  // ─── Supermenejer paneli ───
+  // ─── Supermenejer bo'limi ───
+  // Menejer panelidan mustaqil: o'z bosh sahifasi, o'z navigatsiyasi.
+  // Hammasi `requiresSuper` ostida — oddiy menejer bu yerga kira olmaydi.
   {
     path: "/super",
-    redirect: "/super/managers",
+    component: lazy("SuperHome"),
+    meta: { requiresAuth: true, requiresSuper: true },
+  },
+  {
+    path: "/super/activity",
+    component: lazy("SuperActivity"),
+    meta: { requiresAuth: true, requiresSuper: true },
   },
   {
     path: "/super/managers",
@@ -133,6 +138,11 @@ const routes = [
   {
     path: "/super/salaries",
     component: lazy("SuperSalaries"),
+    meta: { requiresAuth: true, requiresSuper: true },
+  },
+  {
+    path: "/super/finance",
+    component: lazy("Finance"),
     meta: { requiresAuth: true, requiresSuper: true },
   },
   {
@@ -150,7 +160,10 @@ const router = createRouter({
 
 // Kirish (entry) sahifalari — URL orqali to'g'ridan-to'g'ri ochsa bo'ladi.
 // Qolgan sahifalarga faqat ilova ichidagi RouterLink/tugmalar orqali kiriladi.
-const ENTRY_PATHS = ["/", "/login", "/offline", "/groups/board"];
+// `/super` — supermenejerning bosh sahifasi, u login'dan keyin shu yerga
+// tushadi va zakladkadan ham ocha olishi kerak (ichkarisi `requiresSuper`
+// bilan qo'riqlanadi, shuning uchun begona baribir kira olmaydi).
+const ENTRY_PATHS = ["/", "/login", "/offline", "/groups/board", "/super"];
 
 router.beforeEach((to, from) => {
   const user = getUser();

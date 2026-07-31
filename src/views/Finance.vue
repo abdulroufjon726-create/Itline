@@ -1,7 +1,5 @@
 <template>
-  <div class="min-h-screen bg-slate-50 p-4 sm:p-6 font-sans">
-    <!-- Header -->
-    <SuperNav title="Moliya" subtitle="To'lovlar va xarajatlar monitoringi" />
+  <SuperLayout title="Moliya" subtitle="To'lovlar va xarajatlar monitoringi">
 
     <div class="flex justify-end mb-4">
       <input type="month" v-model="selectedMonth"
@@ -445,13 +443,13 @@
         {{ toast.message }}
       </div>
     </transition>
-  </div>
+  </SuperLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
 import AppIcon from "@/components/AppIcon.vue";
-import SuperNav from "@/components/SuperNav.vue";
+import SuperLayout from "@/components/SuperLayout.vue";
 import { API, authHeaders } from "@/utils/managerApi";
 
 // Moliya supermenejer bo'limi — so'rovlarga 'X-User-Phone' qo'shilmasa
