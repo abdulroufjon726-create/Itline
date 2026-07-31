@@ -73,7 +73,16 @@
             </p>
             <p class="text-[11px] text-violet-600 leading-tight">supermenejer</p>
           </div>
-          <button @click="toggleTheme" class="p-2 rounded-lg text-slate-400 hover:bg-slate-50 transition">
+          <router-link
+            to="/super/profile"
+            class="p-2 rounded-lg text-slate-400 hover:bg-slate-50 transition"
+          >
+            <AppIcon name="settings" />
+          </router-link>
+          <button
+            @click="toggleTheme"
+            class="p-2 rounded-lg text-slate-400 hover:bg-slate-50 transition"
+          >
             <AppIcon :name="theme === 'dark' ? 'sun' : 'moon'" />
           </button>
           <button @click="logout"
