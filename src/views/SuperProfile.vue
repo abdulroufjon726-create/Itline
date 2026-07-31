@@ -5,8 +5,7 @@
       <div class="bg-white rounded-2xl border border-slate-200 p-5">
         <div class="flex items-center gap-3.5">
           <span
-            class="w-14 h-14 rounded-2xl bg-indigo-100 flex items-center justify-center text-lg font-bold text-indigo-600 shrink-0"
-          >
+            class="w-14 h-14 rounded-2xl bg-indigo-100 flex items-center justify-center text-lg font-bold text-indigo-600 shrink-0">
             {{ initials }}
           </span>
           <div class="min-w-0 flex-1">
@@ -14,9 +13,7 @@
               <p class="font-semibold text-slate-800 truncate">
                 {{ form.name }} {{ form.surname }}
               </p>
-              <span
-                class="text-[10px] px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 shrink-0"
-              >
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 shrink-0">
                 supermenejer
               </span>
             </div>
@@ -46,21 +43,13 @@
           </div>
           <div>
             <label class="block text-xs text-slate-400 mb-1.5">Familiya</label>
-            <input
-              v-model="form.surname"
-              :class="inputCls"
-              placeholder="Familiya"
-            />
+            <input v-model="form.surname" :class="inputCls" placeholder="Familiya" />
           </div>
         </div>
 
         <div class="mt-3">
           <label class="block text-xs text-slate-400 mb-1.5">Telefon</label>
-          <input
-            :value="user?.phone"
-            disabled
-            :class="[inputCls, 'opacity-60 cursor-not-allowed']"
-          />
+          <input :value="user?.phone" disabled :class="[inputCls, 'opacity-60 cursor-not-allowed']" />
           <p class="text-[11px] text-slate-400 mt-1.5">
             Telefon raqam login uchun ishlatiladi — uni o'zgartirish uchun
             bazaga kirish kerak.
@@ -68,15 +57,11 @@
         </div>
 
         <div class="flex items-center gap-3 justify-end mt-4">
-          <p v-if="info.msg" :class="info.ok ? 'text-emerald-600' : 'text-rose-500'"
-            class="text-xs flex-1">
+          <p v-if="info.msg" :class="info.ok ? 'text-emerald-600' : 'text-rose-500'" class="text-xs flex-1">
             {{ info.msg }}
           </p>
-          <button
-            @click="saveInfo"
-            :disabled="info.saving || !form.name.trim()"
-            class="px-5 py-2 rounded-lg bg-slate-900 text-white text-sm hover:bg-slate-800 disabled:opacity-40 transition"
-          >
+          <button @click="saveInfo" :disabled="info.saving || !form.name.trim()"
+            class="px-5 py-2 rounded-lg bg-slate-900 text-white text-sm hover:bg-slate-800 disabled:opacity-40 transition">
             <AppIcon name="check" />
             {{ info.saving ? "Saqlanmoqda..." : "Saqlash" }}
           </button>
@@ -97,62 +82,54 @@
         <div class="space-y-3">
           <div>
             <label class="block text-xs text-slate-400 mb-1.5">Joriy parol</label>
-            <input
-              v-model="pwd.old"
-              :type="pwd.show ? 'text' : 'password'"
-              :class="inputCls"
-              autocomplete="current-password"
-            />
+            <input v-model="pwd.old" :type="pwd.show ? 'text' : 'password'" :class="inputCls"
+              autocomplete="current-password" />
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label class="block text-xs text-slate-400 mb-1.5">Yangi parol</label>
-              <input
-                v-model="pwd.new1"
-                :type="pwd.show ? 'text' : 'password'"
-                :class="inputCls"
-                autocomplete="new-password"
-              />
+              <input v-model="pwd.new1" :type="pwd.show ? 'text' : 'password'" :class="inputCls"
+                autocomplete="new-password" />
             </div>
             <div>
               <label class="block text-xs text-slate-400 mb-1.5">
                 Yangi parol (takror)
               </label>
-              <input
-                v-model="pwd.new2"
-                :type="pwd.show ? 'text' : 'password'"
-                :class="inputCls"
-                autocomplete="new-password"
-                @keyup.enter="savePassword"
-              />
+              <input v-model="pwd.new2" :type="pwd.show ? 'text' : 'password'" :class="inputCls"
+                autocomplete="new-password" @keyup.enter="savePassword" />
             </div>
           </div>
         </div>
 
-        <label
-          class="flex items-center gap-2 text-xs text-slate-500 mt-3 cursor-pointer select-none"
-        >
+        <label class="flex items-center gap-2 text-xs text-slate-500 mt-3 cursor-pointer select-none">
           <input type="checkbox" v-model="pwd.show" class="accent-indigo-500" />
           Parolni ko'rsatish
         </label>
 
         <div class="flex items-center gap-3 justify-end mt-4">
-          <p
-            v-if="pwd.msg"
-            :class="pwd.ok ? 'text-emerald-600' : 'text-rose-500'"
-            class="text-xs flex-1"
-          >
+          <p v-if="pwd.msg" :class="pwd.ok ? 'text-emerald-600' : 'text-rose-500'" class="text-xs flex-1">
             {{ pwd.msg }}
           </p>
-          <button
-            @click="savePassword"
-            :disabled="pwd.saving"
-            class="px-5 py-2 rounded-lg bg-slate-900 text-white text-sm hover:bg-slate-800 disabled:opacity-40 transition"
-          >
+          <button @click="savePassword" :disabled="pwd.saving"
+            class="px-5 py-2 rounded-lg bg-slate-900 text-white text-sm hover:bg-slate-800 disabled:opacity-40 transition">
             <AppIcon name="lock" />
             {{ pwd.saving ? "Saqlanmoqda..." : "O'zgartirish" }}
           </button>
         </div>
+      </div>
+      <div class="bg-white rounded-2xl border border-slate-200 p-5">
+        <button @click="toggleTheme" :title="collapsed ? (theme === 'dark' ? 'Kunduzgi rejim' : 'Tungi rejim') : ''"
+          :class="navBtn">
+          <AppIcon :name="theme === 'dark' ? 'sun' : 'moon'" class="shrink-0" />
+          <span v-if="!collapsed">
+            {{ theme === "dark" ? "Kunduzgi" : "Tungi" }} rejim
+          </span>
+        </button>
+
+        <button @click="logout" :title="collapsed ? 'Chiqish' : ''" :class="[navBtn, 'hover:text-rose-500']">
+          <AppIcon name="logout" class="shrink-0" />
+          <span v-if="!collapsed">Chiqish</span>
+        </button>
       </div>
     </div>
   </SuperLayout>
@@ -163,6 +140,11 @@ import { ref, reactive, computed, onMounted } from "vue";
 import AppIcon from "@/components/AppIcon.vue";
 import SuperLayout from "@/components/SuperLayout.vue";
 import { API, apiSend, currentUser } from "@/utils/managerApi";
+import { useTheme } from "@/composables/useTheme";
+
+
+const { theme, toggleTheme } = useTheme();
+
 
 const user = ref(currentUser());
 
@@ -201,6 +183,18 @@ function flash(target, msg, ok) {
   target.ok = ok;
   setTimeout(() => (target.msg = ""), 4000);
 }
+
+const collapsed = ref(localStorage.getItem("super_nav_collapsed") === "1");
+function toggleCollapsed() {
+  collapsed.value = !collapsed.value;
+  localStorage.setItem("super_nav_collapsed", collapsed.value ? "1" : "0");
+}
+
+// Pastki tugmalar bir xil ko'rinishda — takrorlanmasin
+const navBtn = computed(() => [
+  "w-full cursor-pointer flex items-center gap-2.5 py-2.5 rounded-xl text-sm text-slate-500 hover:bg-slate-50 transition",
+  collapsed.value ? "px-0 justify-center" : "px-3",
+]);
 
 async function saveInfo() {
   info.saving = true;
@@ -268,4 +262,9 @@ onMounted(() => {
   form.name = user.value?.name || "";
   form.surname = user.value?.surname || "";
 });
+
+function logout() {
+  localStorage.removeItem("user");
+  router.push("/login");
+}
 </script>

@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-slate-50 app-gradient flex">
+  <div class="min-h-screen bg-slate-50 app-gradient flex py-4">
     <!-- ══════════ YON PANEL (desktop) ══════════ -->
     <!-- Yig'ilganda faqat ikonkalar qoladi; tanlov localStorage'da
          saqlanadi, shuning uchun sahifa almashganda ham o'sha holatda
@@ -42,22 +42,14 @@
       </nav>
 
       <div class="p-2.5 border-t border-slate-200 space-y-0.5">
-        <button @click="toggleTheme" :title="collapsed ? (theme === 'dark' ? 'Kunduzgi rejim' : 'Tungi rejim') : ''"
-          :class="navBtn">
-          <AppIcon :name="theme === 'dark' ? 'sun' : 'moon'" class="shrink-0" />
-          <span v-if="!collapsed">
-            {{ theme === "dark" ? "Kunduzgi" : "Tungi" }} rejim
-          </span>
-        </button>
         <router-link to="/excellence" :title="collapsed ? 'Menejer paneli' : ''" :class="navBtn">
           <AppIcon name="briefcase" class="shrink-0" />
           <span v-if="!collapsed">Menejer paneli</span>
         </router-link>
-        <button @click="logout" :title="collapsed ? 'Chiqish' : ''" :class="[navBtn, 'hover:text-rose-500']">
-          <AppIcon name="logout" class="shrink-0" />
-          <span v-if="!collapsed">Chiqish</span>
-        </button>
-
+        <router-link to="/super/profile" :title="collapsed ? 'profile' : ''" :class="navBtn">
+          <AppIcon name="user" class="shrink-0" />
+          <span v-if="!collapsed">Profile</span>
+        </router-link>
       </div>
     </aside>
 
@@ -73,16 +65,10 @@
             </p>
             <p class="text-[11px] text-violet-600 leading-tight">supermenejer</p>
           </div>
-          <router-link
-            to="/super/profile"
-            class="p-2 rounded-lg text-slate-400 hover:bg-slate-50 transition"
-          >
+          <router-link to="/super/profile" class="p-2 rounded-lg text-slate-400 hover:bg-slate-50 transition">
             <AppIcon name="settings" />
           </router-link>
-          <button
-            @click="toggleTheme"
-            class="p-2 rounded-lg text-slate-400 hover:bg-slate-50 transition"
-          >
+          <button @click="toggleTheme" class="p-2 rounded-lg text-slate-400 hover:bg-slate-50 transition">
             <AppIcon :name="theme === 'dark' ? 'sun' : 'moon'" />
           </button>
           <button @click="logout"
