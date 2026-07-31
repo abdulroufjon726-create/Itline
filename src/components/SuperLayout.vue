@@ -50,6 +50,17 @@
       </nav>
 
       <div class="p-2.5 border-t border-slate-200 space-y-0.5">
+        <router-link
+          to="/super/profile"
+          :title="collapsed ? 'Profil' : ''"
+          :class="[
+            navBtn,
+            route.path === '/super/profile' ? 'bg-slate-900 text-white' : '',
+          ]"
+        >
+          <AppIcon name="settings" class="shrink-0" />
+          <span v-if="!collapsed">Profil</span>
+        </router-link>
         <button
           @click="toggleTheme"
           :title="collapsed ? (theme === 'dark' ? 'Kunduzgi rejim' : 'Tungi rejim') : ''"
@@ -105,6 +116,12 @@
             </p>
             <p class="text-[11px] text-violet-600 leading-tight">supermenejer</p>
           </div>
+          <router-link
+            to="/super/profile"
+            class="p-2 rounded-lg text-slate-400 hover:bg-slate-50 transition"
+          >
+            <AppIcon name="settings" />
+          </router-link>
           <button
             @click="toggleTheme"
             class="p-2 rounded-lg text-slate-400 hover:bg-slate-50 transition"
