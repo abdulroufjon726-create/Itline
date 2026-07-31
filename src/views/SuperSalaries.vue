@@ -140,7 +140,7 @@
         <p class="text-sm text-slate-400 mt-3">Yuklanmoqda...</p>
       </div>
 
-      <table v-else class="w-full text-sm min-w-[900px]">
+      <table v-else class="w-full text-sm min-w-[1040px]">
         <thead>
           <tr class="bg-slate-50/70 border-b border-slate-100">
             <th class="text-left px-4 py-3 text-xs text-slate-400 font-medium">Ustoz</th>

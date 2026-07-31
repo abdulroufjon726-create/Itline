@@ -1,59 +1,92 @@
 <template>
   <div class="min-h-screen bg-slate-50 app-gradient flex">
     <!-- ══════════ YON PANEL (desktop) ══════════ -->
+    <!-- Yig'ilganda faqat ikonkalar qoladi; tanlov localStorage'da
+         saqlanadi, shuning uchun sahifa almashganda ham o'sha holatda
+         qoladi -->
     <aside
-      class="hidden lg:flex flex-col w-60 shrink-0 border-r border-slate-200 bg-white/70 backdrop-blur sticky top-0 h-screen"
+      :class="[
+        'hidden lg:flex flex-col shrink-0 border-r border-slate-200 bg-white sticky top-0 h-screen transition-[width] duration-200',
+        collapsed ? 'w-[68px]' : 'w-60',
+      ]"
     >
-      <div class="p-5 flex items-center gap-2.5">
-        <img src="../icon/itline.png" alt="" class="w-9 rounded-full" />
-        <div class="min-w-0">
+      <div
+        class="p-4 flex items-center gap-2.5"
+        :class="collapsed ? 'justify-center' : ''"
+      >
+        <img src="../icon/itline.png" alt="" class="w-9 rounded-full shrink-0" />
+        <div v-if="!collapsed" class="min-w-0 flex-1">
           <p class="text-sm font-semibold text-slate-800 leading-tight">ITLINE</p>
-          <p class="text-[11px] text-violet-600 leading-tight">supermenejer</p>
+          <p class="text-[11px] text-indigo-500 leading-tight">supermenejer</p>
         </div>
       </div>
 
-      <nav class="flex-1 px-3 space-y-0.5 overflow-y-auto">
+      <nav class="flex-1 px-2.5 space-y-0.5 overflow-y-auto">
         <router-link
           v-for="l in links"
           :key="l.to"
           :to="l.to"
+          :title="collapsed ? l.label : ''"
           :class="[
-            'flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition',
+            'flex items-center gap-2.5 py-2.5 rounded-xl text-sm transition relative',
+            collapsed ? 'px-0 justify-center' : 'px-3',
             isActive(l)
               ? 'bg-slate-900 text-white'
               : 'text-slate-500 hover:bg-slate-50',
           ]"
         >
           <AppIcon :name="l.icon" class="shrink-0" />
-          <span class="truncate">{{ l.label }}</span>
+          <span v-if="!collapsed" class="truncate">{{ l.label }}</span>
           <span
             v-if="l.badge"
-            class="ml-auto min-w-[18px] h-[18px] px-1 inline-flex items-center justify-center rounded-full bg-rose-500 text-white text-[10px] font-bold"
+            :class="[
+              'min-w-[18px] h-[18px] px-1 inline-flex items-center justify-center rounded-full bg-rose-500 text-white text-[10px] font-bold',
+              collapsed ? 'absolute top-1 right-1' : 'ml-auto',
+            ]"
           >
             {{ l.badge }}
           </span>
         </router-link>
       </nav>
 
-      <div class="p-3 border-t border-slate-200 space-y-0.5">
+      <div class="p-2.5 border-t border-slate-200 space-y-0.5">
         <button
           @click="toggleTheme"
-          class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm text-slate-500 hover:bg-slate-50 transition"
+          :title="collapsed ? (theme === 'dark' ? 'Kunduzgi rejim' : 'Tungi rejim') : ''"
+          :class="navBtn"
         >
-          <AppIcon :name="theme === 'dark' ? 'sun' : 'moon'" />
-          {{ theme === "dark" ? "Kunduzgi" : "Tungi" }} rejim
+          <AppIcon :name="theme === 'dark' ? 'sun' : 'moon'" class="shrink-0" />
+          <span v-if="!collapsed">
+            {{ theme === "dark" ? "Kunduzgi" : "Tungi" }} rejim
+          </span>
         </button>
         <router-link
           to="/excellence"
-          class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm text-slate-500 hover:bg-slate-50 transition"
+          :title="collapsed ? 'Menejer paneli' : ''"
+          :class="navBtn"
         >
-          <AppIcon name="briefcase" /> Menejer paneli
+          <AppIcon name="briefcase" class="shrink-0" />
+          <span v-if="!collapsed">Menejer paneli</span>
         </router-link>
         <button
           @click="logout"
-          class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm text-slate-400 hover:bg-slate-50 hover:text-rose-500 transition"
+          :title="collapsed ? 'Chiqish' : ''"
+          :class="[navBtn, 'hover:text-rose-500']"
         >
-          <AppIcon name="logout" /> Chiqish
+          <AppIcon name="logout" class="shrink-0" />
+          <span v-if="!collapsed">Chiqish</span>
+        </button>
+
+        <button
+          @click="toggleCollapsed"
+          :title="collapsed ? 'Menyuni ochish' : 'Menyuni yig\'ish'"
+          :class="[navBtn, 'mt-1 border-t border-slate-200 pt-3 rounded-none']"
+        >
+          <AppIcon
+            :name="collapsed ? 'chevron-right' : 'chevron-left'"
+            class="shrink-0"
+          />
+          <span v-if="!collapsed">Yig'ish</span>
         </button>
       </div>
     </aside>
@@ -122,7 +155,7 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { ref, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import AppIcon from "@/components/AppIcon.vue";
 import { useTheme } from "@/composables/useTheme";
@@ -137,6 +170,19 @@ const props = defineProps({
 const route = useRoute();
 const router = useRouter();
 const { theme, toggleTheme } = useTheme();
+
+// Yon menyu yig'ilgan holati sahifalar orasida saqlanadi
+const collapsed = ref(localStorage.getItem("super_nav_collapsed") === "1");
+function toggleCollapsed() {
+  collapsed.value = !collapsed.value;
+  localStorage.setItem("super_nav_collapsed", collapsed.value ? "1" : "0");
+}
+
+// Pastki tugmalar bir xil ko'rinishda — takrorlanmasin
+const navBtn = computed(() => [
+  "w-full flex items-center gap-2.5 py-2.5 rounded-xl text-sm text-slate-500 hover:bg-slate-50 transition",
+  collapsed.value ? "px-0 justify-center" : "px-3",
+]);
 
 const links = computed(() => [
   { to: "/super", label: "Bosh sahifa", icon: "chart", exact: true },
