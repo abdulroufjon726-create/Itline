@@ -9,10 +9,18 @@
         <p class="text-sm text-slate-400">{{ subtitle }}</p>
       </div>
 
-      <router-link to="/excellence"
-        class="px-3 py-1.5 rounded-full text-xs border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-indigo-500 transition shrink-0 flex items-center gap-1.5">
-        <AppIcon name="arrow-left" /> Asosiy panel
-      </router-link>
+      <div class="flex items-center gap-2 shrink-0">
+        <router-link v-if="isSuperUser" to="/super"
+          class="px-3 py-1.5 rounded-full text-xs bg-slate-900 text-white hover:bg-slate-800 transition flex items-center gap-1.5">
+          <AppIcon name="key" />
+          <span class="hidden sm:inline">Supermenejer</span>
+        </router-link>
+        <router-link to="/excellence"
+          class="px-3 py-1.5 rounded-full text-xs border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-indigo-500 transition flex items-center gap-1.5">
+          <AppIcon name="arrow-left" />
+          <span class="hidden sm:inline">Asosiy panel</span>
+        </router-link>
+      </div>
     </div>
 
     <div class="flex flex-wrap gap-2">
@@ -31,12 +39,15 @@
 <script setup>
 import { computed } from "vue";
 import AppIcon from "@/components/AppIcon.vue";
-import { can } from "@/utils/managerApi";
+import { can, isSuper } from "@/utils/managerApi";
 
 defineProps({
   title: { type: String, default: "Menejer paneli" },
   subtitle: { type: String, default: "" },
 });
+
+// Supermenejer bu sahifalarga tushganda o'z bo'limiga qayta olsin
+const isSuperUser = isSuper();
 
 // Supermenejer bermagan bo'limlar menejerga umuman ko'rinmaydi
 const ALL_LINKS = [

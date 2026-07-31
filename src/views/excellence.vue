@@ -1275,10 +1275,20 @@ const inputClass = (field) => [
           Xush kelibsiz, {{ user.name }}!
         </p>
       </div>
-      <button @click="$router.push('/profile')"
-        class="px-4 py-2 rounded-full border border-gray-200 text-sm hover:bg-gray-50 transition">
-        <AppIcon name="settings" /> Profil
-      </button>
+      <div class="flex items-center gap-2 shrink-0">
+        <!-- Supermenejer bu panelga o'tganda qaytish yo'li ko'rinib
+             tursin — aks holda faqat brauzer tugmasi qoladi -->
+        <router-link v-if="isSuperUser" to="/super"
+          class="px-3 sm:px-4 py-2 rounded-full bg-gray-900 text-white text-sm hover:bg-gray-800 transition flex items-center gap-1.5">
+          <AppIcon name="arrow-left" />
+          <span class="hidden sm:inline">Supermenejer</span>
+        </router-link>
+        <button @click="$router.push('/profile')"
+          class="px-3 sm:px-4 py-2 rounded-full border border-gray-200 text-sm hover:bg-gray-50 transition flex items-center gap-1.5">
+          <AppIcon name="settings" />
+          <span class="hidden sm:inline">Profil</span>
+        </button>
+      </div>
     </div>
 
     <!-- Tablar: asosiylari ko'rinadi, qolganlari "Ko'proq" menyusida -->
