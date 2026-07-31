@@ -2,6 +2,7 @@
 import { ref, onMounted, computed, watch } from "vue";
 import { useRouter } from "vue-router";
 import AppIcon from "@/components/AppIcon.vue";
+import { authHeaders } from "@/utils/managerApi";
 const router = useRouter();
 const API = "https://itline-django-9s85.onrender.com/api";
 const user = JSON.parse(localStorage.getItem("user") || "null");
@@ -94,11 +95,16 @@ const canCreateGroup = computed(() => (hasAccess.value = true));
 
 // ─────────────────────────────
 // GURUH FILTRI
-// Ustoz avval faqat o'z guruhlarini ko'radi; kerak bo'lsa
-// "Barcha ustozlar guruhi" tugmasi bilan hammasini ochadi.
-// Menejer (excellence) uchun filtr yo'q — u hammasini ko'radi.
+// Ustoz faqat o'z guruhlarini ko'radi — boshqa ustozning guruhiga
+// umuman kira olmaydi (backend ham shu tarzda filtrlaydi).
+// Menejer va panel darajasidagi (excellence) foydalanuvchi hammasini
+// ko'radi.
 // ─────────────────────────────
-const showAllTeachers = ref(!user?.teacher_id || !!user?.is_excellence);
+const canSeeAllGroups = computed(
+  () => user?.role === "manager" || !!user?.is_excellence,
+);
+
+const showAllTeachers = ref(canSeeAllGroups.value);
 
 const myTeacherId = computed(() => user?.teacher_id ?? null);
 
@@ -109,7 +115,9 @@ const filterTeacherId = ref(null);
 
 const visibleGroups = computed(() => {
   let list = groups.value;
-  if (!(showAllTeachers.value || !myTeacherId.value)) {
+  // Ustozga faqat o'z guruhlari. Serverdan ham shundayi keladi, bu
+  // yerdagisi qo'shimcha himoya (keshdan eski ma'lumot qolsa ham)
+  if (!canSeeAllGroups.value && myTeacherId.value) {
     list = list.filter(
       (g) => (g.teacher?.id ?? g.teacher_id) === myTeacherId.value,
     );
@@ -146,7 +154,9 @@ const myGroupsCount = computed(() => {
 async function fetchGroups() {
   loadingGroups.value = true;
   try {
-    const res = await fetch(`${API}/groups/`);
+    // Sarlavha orqali backend chaqiruvchini aniqlaydi: ustozga faqat
+    // o'z guruhlari qaytariladi
+    const res = await fetch(`${API}/groups/`, { headers: authHeaders() });
     if (!res.ok) throw new Error("Guruhlarni yuklashda xatolik");
     groups.value = await res.json();
 
@@ -529,8 +539,11 @@ async function sendGroupMsg() {
                 </div>
               </div>
 
-              <!-- O'qituvchi bo'yicha filter -->
-              <div v-if="teachers.length" class="p-3 border-b border-gray-100">
+              <!-- O'qituvchi bo'yicha filter (ustozga kerak emas) -->
+              <div
+                v-if="teachers.length && canSeeAllGroups"
+                class="p-3 border-b border-gray-100"
+              >
                 <div class="relative">
                   <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-300">
                     <AppIcon name="teacher" />
@@ -550,9 +563,13 @@ async function sendGroupMsg() {
                 </div>
               </div>
 
-              <!-- Guruh filtri: o'zimniki / barcha ustozlar -->
+              <!--
+                Guruh filtri: o'zimniki / barcha ustozlar.
+                Oddiy ustozga bu tanlov ko'rsatilmaydi — u faqat o'z
+                guruhlarini ko'radi.
+              -->
               <div
-                v-if="myTeacherId"
+                v-if="myTeacherId && canSeeAllGroups"
                 class="flex gap-2 p-3 border-b border-gray-100"
               >
                 <button
@@ -599,7 +616,7 @@ async function sendGroupMsg() {
                 </p>
                 <p v-else>Hozircha guruhlar yo'q</p>
                 <button
-                  v-if="myTeacherId && !showAllTeachers && groups.length"
+                  v-if="myTeacherId && !showAllTeachers && canSeeAllGroups && groups.length"
                   @click="showAllTeachers = true"
                   class="mt-4 text-sm text-black underline"
                 >

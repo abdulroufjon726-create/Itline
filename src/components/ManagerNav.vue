@@ -29,24 +29,21 @@
 </template>
 
 <script setup>
-import { useRouter } from "vue-router";
+import { computed } from "vue";
 import AppIcon from "@/components/AppIcon.vue";
-
-const router = useRouter();
-
-function logout() {
-  localStorage.removeItem("user");
-  router.push("/login");
-}
+import { can } from "@/utils/managerApi";
 
 defineProps({
   title: { type: String, default: "Menejer paneli" },
   subtitle: { type: String, default: "" },
 });
 
-const links = [
-  { to: "/manager/students", label: "O'quvchilar", icon: "student" },
-  { to: "/manager/teachers", label: "Ustozlar", icon: "teacher" },
-  { to: "/manager/managers", label: "Menejerlar", icon: "manager" },
+// Supermenejer bermagan bo'limlar menejerga umuman ko'rinmaydi
+const ALL_LINKS = [
+  { to: "/manager/students", label: "O'quvchilar", icon: "student", perm: "students.view" },
+  { to: "/manager/teachers", label: "Ustozlar", icon: "teacher", perm: "teachers.view" },
+  { to: "/manager/managers", label: "Menejerlar", icon: "manager", perm: "managers.view" },
 ];
+
+const links = computed(() => ALL_LINKS.filter((l) => can(l.perm)));
 </script>

@@ -12,6 +12,7 @@ import NewsManager from "./NewsManager.vue";
 import AppIcon from "@/components/AppIcon.vue";
 import AttendanceBoard from "@/components/AttendanceBoard.vue";
 import PaymentRequests from "@/components/PaymentRequests.vue";
+import { can, isSuper } from "@/utils/managerApi";
 
 const router = useRouter();
 const API = "https://itline-django-9s85.onrender.com/api";
@@ -22,25 +23,39 @@ if (!user || !(user.is_excellence || user.role === "manager")) {
   router.push("/login");
 }
 
-// Chegirma berish faqat menejer huquqi — boshqalar faqat ko'radi
-const isManager = user?.role === "manager";
+// Chegirma berish faqat menejer huquqi — boshqalar faqat ko'radi.
+// Menejerlar orasida ham supermenejer bergan vakolatga qarab
+// ('payments.discount') chegirma ustuni ko'rinadi.
+const isManager = user?.role === "manager" && can("payments.discount", user);
+// Supermenejer — moliya va oyliklar bo'limi faqat unda ko'rinadi
+const isSuperUser = isSuper(user);
 
 function logout() {
   localStorage.removeItem("user");
   router.push("/login");
 }
 
+// To'lovlarni ko'rish vakolati bo'lmagan menejerga bo'sh sahifa
+// chiqmasligi uchun boshlang'ich tab keyinroq (tablar hisoblangach)
+// tanlanadi
 const activeTab = ref("payments");
 
 // Panel bo'limlari (ikonka nomlari AppIcon.vue dagi ro'yxatdan)
 // Asosiy (eng ko'p ishlatiladigan) tablar — doim ko'rinadi
-const PRIMARY_TABS = [
-  { key: "payments", icon: "payment", label: "To'lovlar" },
-  { key: "payreq", icon: "receipt", label: "So'rovlar" },
-  { key: "attendance", icon: "attendance", label: "Davomat" },
-  { key: "groups", icon: "groups", label: "Guruhlar" },
-  { key: "add", icon: "user-plus", label: "Qo'shish" },
+// `perm` — shu bo'limni ko'rish uchun kerakli vakolat. Supermenejer
+// bergan vakolatlar ro'yxatida bo'lmasa, tab menejerga umuman
+// ko'rinmaydi (ustoz/admin o'quvchida cheklov yo'q).
+const ALL_PRIMARY_TABS = [
+  { key: "payments", icon: "payment", label: "To'lovlar", perm: "payments.view" },
+  { key: "payreq", icon: "receipt", label: "So'rovlar", perm: "payments.requests" },
+  { key: "attendance", icon: "attendance", label: "Davomat", perm: "attendance.view" },
+  { key: "groups", icon: "groups", label: "Guruhlar", perm: "groups.view" },
+  { key: "add", icon: "user-plus", label: "Qo'shish", perm: "students.add" },
 ];
+
+const PRIMARY_TABS = computed(() =>
+  ALL_PRIMARY_TABS.filter((t) => can(t.perm, user)),
+);
 
 // Kutayotgan to'lov so'rovlari soni (badge)
 const pendingReqCount = ref(0);
@@ -60,29 +75,61 @@ async function onPaymentAccepted(payload) {
   loadPendingReqCount();
 }
 // Qolganlari "Ko'proq" menyusida — navigatsiya toza bo'lishi uchun
-const MORE_TABS = [
-  { key: "fee", icon: "briefcase", label: "Kurslar" },
-  { key: "history", icon: "chart", label: "Tarix" },
-  { key: "mahsulotlar", icon: "shop", label: "Mahsulotlar" },
-  { key: "orders", icon: "orders", label: "Buyurtmalar" },
-  { key: "settings", icon: "coin", label: "Coin sozlamalari" },
-  { key: "news", icon: "news", label: "Yangiliklar" },
+const ALL_MORE_TABS = [
+  { key: "fee", icon: "briefcase", label: "Kurslar", perm: "courses.view" },
+  { key: "history", icon: "chart", label: "Tarix", perm: "history.view" },
+  { key: "mahsulotlar", icon: "shop", label: "Mahsulotlar", perm: "shop.products" },
+  { key: "orders", icon: "orders", label: "Buyurtmalar", perm: "shop.orders" },
+  { key: "settings", icon: "coin", label: "Coin sozlamalari", perm: "coins.settings" },
+  { key: "news", icon: "news", label: "Yangiliklar", perm: "news.manage" },
 ];
-// Boshqa sahifalarga havolalar (tab emas)
-const MORE_LINKS = [
-  { to: "/finance", icon: "money", label: "Moliya" },
-  { to: "/database", icon: "database", label: "Baza" },
-  { to: "/manager/students", icon: "manager", label: "Menejer paneli" },
+
+const MORE_TABS = computed(() => ALL_MORE_TABS.filter((t) => can(t.perm, user)));
+
+// Boshqa sahifalarga havolalar (tab emas).
+// Moliya bu yerdan olib tashlandi — u supermenejer bo'limiga o'tdi.
+const ALL_MORE_LINKS = [
+  { to: "/database", icon: "database", label: "Baza", perm: "database.view" },
+  {
+    to: "/manager/students",
+    icon: "manager",
+    label: "Menejer paneli",
+    perm: "students.view",
+  },
 ];
+
+const MORE_LINKS = computed(() => {
+  const links = ALL_MORE_LINKS.filter((l) => can(l.perm, user));
+  // Supermenejer uchun o'z bo'limiga o'tish havolasi
+  if (isSuperUser) {
+    links.push({
+      to: "/super/managers",
+      icon: "key",
+      label: "Supermenejer bo'limi",
+    });
+  }
+  return links;
+});
 // "Ko'proq" menyusi ochiqmi
 const showMore = ref(false);
 // Menyudagi tablardan biri tanlanganmi (Ko'proq tugmasini yoritish uchun)
 const isMoreActive = computed(() =>
-  MORE_TABS.some((t) => t.key === activeTab.value),
+  MORE_TABS.value.some((t) => t.key === activeTab.value),
 );
 function pickTab(key) {
   activeTab.value = key;
   showMore.value = false;
+}
+
+// Ochilishda: joriy tab ruxsat etilganlar orasida bo'lmasa, birinchi
+// mavjudiga o'tamiz — aks holda menejer bo'sh panel ko'rardi
+const availableTabKeys = computed(() => [
+  ...PRIMARY_TABS.value.map((t) => t.key),
+  ...MORE_TABS.value.map((t) => t.key),
+]);
+
+if (availableTabKeys.value.length && !availableTabKeys.value.includes(activeTab.value)) {
+  activeTab.value = availableTabKeys.value[0];
 }
 
 const teachers = ref([]);
