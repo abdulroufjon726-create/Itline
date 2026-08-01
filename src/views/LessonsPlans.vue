@@ -598,6 +598,7 @@ function selectNews(idx) {
 // ─────────────────────────────
 
 const leaderboard = ref([]);
+const groupBoard = ref([]);
 let leaderboardTimer = null;
 
 async function fetchLeaderboard() {
@@ -610,7 +611,20 @@ async function fetchLeaderboard() {
   }
 }
 
+// Guruhlar reytingi — o'rtacha coin bo'yicha, ya'ni kichik guruh ham
+// katta guruh bilan teng raqobatlashadi
+async function fetchGroupBoard() {
+  try {
+    const res = await fetch(`${API}/leaderboard/groups/?limit=5`);
+    if (!res.ok) return;
+    groupBoard.value = await res.json();
+  } catch (e) {
+    // jim
+  }
+}
+
 const topStudents = computed(() => leaderboard.value.slice(0, 5));
+const topGroups = computed(() => groupBoard.value.slice(0, 5));
 
 function rankClass(i) {
   if (i === 0)
@@ -626,17 +640,30 @@ function rankClass(i) {
 //    o'z navbati/taymeri bilan ishlaydi (showNextPopup / popupQueue).
 // ─────────────────────────────
 
-const boardView = ref("schedule"); // 'schedule' | 'leaderboard'
-const BOARD_DURATION = { schedule: 60000, leaderboard: 30000 };
+// Aylanma tartib: dars jadvali 1 daqiqa, keyin ikkala reyting 30
+// soniyadan. Jadval uzoqroq turadi — kelgan odam avval o'z darsini
+// qidiradi, reyting esa qarab turish uchun.
+const BOARD_ORDER = ["schedule", "leaderboard", "groups"];
+const BOARD_DURATION = { schedule: 60000, leaderboard: 30000, groups: 30000 };
+
+const boardView = ref("schedule");
 let boardRotateTimer = null;
 
 function scheduleBoardRotation() {
   clearTimeout(boardRotateTimer);
   boardRotateTimer = setTimeout(() => {
-    boardView.value = boardView.value === "schedule" ? "leaderboard" : "schedule";
+    const i = BOARD_ORDER.indexOf(boardView.value);
+    boardView.value = BOARD_ORDER[(i + 1) % BOARD_ORDER.length];
     scheduleBoardRotation();
-  }, BOARD_DURATION[boardView.value]);
+  }, BOARD_DURATION[boardView.value] ?? 30000);
 }
+
+// Sarlavha har ko'rinish uchun alohida
+const BOARD_TITLE = {
+  schedule: { tag: "DARSLAR TAXTASI", title: "Bugungi jadval" },
+  leaderboard: { tag: "REYTING", title: "Top 5 o'quvchi" },
+  groups: { tag: "REYTING", title: "Top 5 guruh" },
+};
 
 function setBoardView(view) {
   boardView.value = view;
@@ -683,9 +710,14 @@ function selectQr(idx) {
   startQrRotation(); // qo'lda tanlanganda taymer qaytadan boshlanadi
 }
 
-onMounted(() => {
+function refreshBoards() {
   fetchLeaderboard();
-  leaderboardTimer = setInterval(fetchLeaderboard, 60000);
+  fetchGroupBoard();
+}
+
+onMounted(() => {
+  refreshBoards();
+  leaderboardTimer = setInterval(refreshBoards, 60000);
   scheduleBoardRotation();
   startQrRotation();
 });
@@ -806,10 +838,10 @@ onUnmounted(() => {
             </RouterLink>
             <div class="min-w-0">
               <p class="text-[10.5px] font-bold tracking-[0.16em] text-amber-400">
-                {{ boardView === 'schedule' ? 'DARSLAR TAXTASI' : 'REYTING' }}
+                {{ BOARD_TITLE[boardView].tag }}
               </p>
               <h1 class="truncate text-xl font-bold text-white">
-                {{ boardView === 'schedule' ? 'Bugungi jadval' : "Top 10 o'quvchi" }}
+                {{ BOARD_TITLE[boardView].title }}
               </h1>
             </div>
           </div>
@@ -851,7 +883,15 @@ onUnmounted(() => {
               ? 'bg-amber-400 text-slate-950 shadow-[0_0_16px_rgba(251,191,36,0.4)]'
               : 'text-slate-400 hover:text-amber-400'
               ">
-            <AppIcon name="trophy" /> Reyting
+            <AppIcon name="trophy" /> O'quvchilar
+          </button>
+          <button type="button" @click="setBoardView('groups')"
+            class="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold tracking-wide transition"
+            :class="boardView === 'groups'
+              ? 'bg-amber-400 text-slate-950 shadow-[0_0_16px_rgba(251,191,36,0.4)]'
+              : 'text-slate-400 hover:text-amber-400'
+              ">
+            <AppIcon name="groups" /> Guruhlar
           </button>
           <span
             class="ml-auto hidden items-center gap-1.5 text-[11px] uppercase tracking-[0.1em] text-slate-500 sm:flex">
@@ -983,7 +1023,50 @@ onUnmounted(() => {
         </div>
         </template>
 
-        <!-- ══════════ REYTING KO'RINISHI (Top 10 o'quvchi) ══════════ -->
+        <!-- ══════════ GURUHLAR REYTINGI (Top 5) ══════════ -->
+        <template v-else-if="boardView === 'groups'">
+          <div v-if="!topGroups.length" class="px-6 py-16 text-center text-sm text-slate-500">
+            <p class="mb-2 text-3xl"><AppIcon name="groups" /></p>
+            <p>Guruhlar reytingi hozircha bo'sh</p>
+          </div>
+
+          <div v-else class="divide-y divide-slate-800/60">
+            <div v-for="(g, i) in topGroups" :key="g.group_id"
+              class="flex animate-[rowIn_0.3s_ease_backwards] items-center gap-4 px-5 py-4 sm:px-7"
+              :class="i === 0 ? 'bg-amber-400/5' : ''"
+              :style="{ animationDelay: `${Math.min(i * 45, 450)}ms` }">
+              <!-- O'rin -->
+              <span
+                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl font-['Space_Mono',monospace] text-lg font-bold"
+                :class="rankClass(i)">
+                {{ i + 1 }}
+              </span>
+
+              <!-- Guruh nomi va ustoz -->
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-base font-semibold text-slate-100">
+                  {{ g.name }}
+                </p>
+                <p class="truncate text-xs text-slate-500">
+                  {{ g.teacher_name || "O'qituvchi yo'q" }} ·
+                  {{ g.students_count }} o'quvchi
+                </p>
+              </div>
+
+              <!-- O'rtacha coin: reyting shu bo'yicha tuzilgan -->
+              <span
+                class="flex shrink-0 items-center gap-1.5 rounded-full bg-slate-800/80 px-3 py-1.5 font-['Space_Mono',monospace] text-base font-bold text-amber-300">
+                <AppIcon name="coin" /> {{ g.average_coins }}
+              </span>
+            </div>
+
+            <p class="px-5 py-3 text-center text-[11px] text-slate-600 sm:px-7">
+              O'rtacha coin bo'yicha — guruh kattaligi natijaga ta'sir qilmaydi
+            </p>
+          </div>
+        </template>
+
+        <!-- ══════════ O'QUVCHILAR REYTINGI (Top 5) ══════════ -->
         <template v-else>
           <!-- Bo'sh holat -->
           <div v-if="!topStudents.length" class="px-6 py-16 text-center text-sm text-slate-500">

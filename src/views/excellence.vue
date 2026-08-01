@@ -9,10 +9,11 @@ import { normalizePhone } from "../utils/phone.js";
 import Groups from "./groups.vue";
 import LessonsPlans from "./LessonsPlans.vue";
 import NewsManager from "./NewsManager.vue";
+import ReceiptSettings from "./ReceiptSettings.vue";
 import AppIcon from "@/components/AppIcon.vue";
 import AttendanceBoard from "@/components/AttendanceBoard.vue";
 import PaymentRequests from "@/components/PaymentRequests.vue";
-import { can, isSuper } from "@/utils/managerApi";
+import { authHeaders, can, isSuper } from "@/utils/managerApi";
 
 const router = useRouter();
 const API = "https://itline-django-9s85.onrender.com/api";
@@ -82,6 +83,7 @@ const ALL_MORE_TABS = [
   { key: "orders", icon: "orders", label: "Buyurtmalar", perm: "shop.orders" },
   { key: "settings", icon: "coin", label: "Coin sozlamalari", perm: "coins.settings" },
   { key: "news", icon: "news", label: "Yangiliklar", perm: "news.manage" },
+  { key: "receipt", icon: "receipt", label: "To'lov cheki", perm: "receipt.settings" },
 ];
 
 const MORE_TABS = computed(() => ALL_MORE_TABS.filter((t) => can(t.perm, user)));
@@ -133,7 +135,6 @@ if (availableTabKeys.value.length && !availableTabKeys.value.includes(activeTab.
 }
 
 const teachers = ref([]);
-const stagePrices = ref([]);
 const payments = ref([]);
 const groups = ref([]);
 const courses = ref([]);
@@ -159,7 +160,6 @@ const attTeacherGroups = computed(() =>
 
 const selectedMonth = ref(new Date().toISOString().slice(0, 7));
 const selectedTeacherId = ref("");
-const editingPrice = ref(null);
 
 const historyTeacherId = ref("");
 const historyMonth = ref(new Date().toISOString().slice(0, 7));
@@ -220,17 +220,6 @@ async function fetchTeachers() {
   } catch (e) {
     console.error("Fetch Teachers Error:", e);
     teachers.value = [];
-  }
-}
-
-async function fetchStagePrices() {
-  try {
-    const res = await fetch(`${API}/stage-prices/`);
-    if (!res.ok) throw new Error("Bosqich narxlarini yuklashda xatolik");
-    stagePrices.value = await res.json();
-  } catch (e) {
-    console.error("Fetch Stage Prices Error:", e);
-    stagePrices.value = [];
   }
 }
 
@@ -319,7 +308,6 @@ async function fetchHistoryPayments() {
 onMounted(async () => {
   await Promise.allSettled([
     fetchTeachers(),
-    fetchStagePrices(),
     fetchCourses(),
     fetchGroups(),
   ]);
@@ -508,7 +496,9 @@ function openMsgModal(mode, payment = null) {
   msgModal.value = {
     open: true,
     mode,
-    target: "all",
+    // Vakolatiga qarab birinchi mavjud qabul qiluvchi tanlanadi —
+    // aks holda "Barchaga" yopiq bo'lgan menejerga bo'sh oyna ochilardi
+    target: msgTargets.value[0]?.key || "all",
     student: payment
       ? { id: payment.student_id, name: payment.student_name }
       : null,
@@ -541,6 +531,36 @@ async function deleteStudentRow(payment) {
   }
 }
 
+// Kimga yuborish mumkin — har biri o'z vakolatiga bog'liq.
+// Supermenejer olib tashlasa, tugma menejerga umuman ko'rinmaydi.
+const MSG_TARGETS = [
+  { key: "all", label: "Barchaga", icon: "users", perm: "messages.send" },
+  { key: "unpaid", label: "To'lov qilmaganlar", icon: "payment", perm: "messages.send" },
+  { key: "teachers", label: "Ustozlar", icon: "teacher", perm: "messages.teachers" },
+  { key: "leads", label: "Leadlar", icon: "megaphone", perm: "messages.leads" },
+];
+
+const msgTargets = computed(() => MSG_TARGETS.filter((t) => can(t.perm, user)));
+
+const msgTitle = computed(() => {
+  const m = msgModal.value;
+  if (m.mode === "single") return `${m.student?.name}ga xabar`;
+  return (
+    {
+      all: "Barcha o'quvchilarga xabar",
+      unpaid: "To'lov qilmaganlarga xabar",
+      teachers: "Ustozlarga xabar",
+      leads: "Leadlarga reklama",
+    }[m.target] || "Xabar"
+  );
+});
+
+// Faqat o'quvchilarga yuborilganda {ism}/{oy} almashtiriladi
+const msgHasPlaceholders = computed(
+  () => msgModal.value.mode === "single" ||
+    ["all", "unpaid"].includes(msgModal.value.target),
+);
+
 async function sendMsg() {
   const m = msgModal.value;
   if (!m.text.trim() || m.sending) return;
@@ -560,10 +580,14 @@ async function sendMsg() {
       }
       url = `${API}/messages/send-students/`;
       body.student_ids = ids;
+    } else if (m.target === "teachers") {
+      url = `${API}/messages/send-teachers/`;
+    } else if (m.target === "leads") {
+      url = `${API}/messages/send-leads/`;
     }
     const res = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify(body),
     });
     const data = await res.json();
@@ -588,28 +612,6 @@ watch(selectedAttMonth, async () => {
     selectStudentForAtt(selectedStudent.value);
   }
 });
-
-function startEditPrice(sp) {
-  editingPrice.value = { stage: sp.stage, value: sp.price };
-}
-
-async function savePrice() {
-  if (!editingPrice.value) return;
-  const res = await fetch(
-    `${API}/stage-prices/update/${editingPrice.value.stage}/`,
-    {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ price: editingPrice.value.value }),
-    },
-  );
-  const data = await res.json();
-  const sp = stagePrices.value.find(
-    (s) => s.stage === editingPrice.value.stage,
-  );
-  if (sp) sp.price = data.price;
-  editingPrice.value = null;
-}
 
 async function generatePayments() {
   if (!confirm(`${selectedMonth.value} uchun to'lovlarni yaratish?`)) return;
@@ -1380,10 +1382,10 @@ const inputClass = (field) => [
         </div>
 
 
-        <div class="flex items-end">
+        <div v-if="msgTargets.length" class="flex items-end">
           <button @click="openMsgModal('all')"
             class="px-4 py-2 bg-gray-900 text-white rounded-xl text-sm hover:bg-sky-600 transition">
-            <AppIcon name="send" /> Barchaga xabar
+            <AppIcon name="send" /> Xabar yuborish
           </button>
         </div>
 
@@ -1977,6 +1979,9 @@ const inputClass = (field) => [
     <div class="" v-if="activeTab === 'news'">
       <NewsManager />
     </div>
+    <div v-if="activeTab === 'receipt'">
+      <ReceiptSettings />
+    </div>
     <div v-if="activeTab === 'groups'">
       <Groups />
     </div>
@@ -1986,44 +1991,36 @@ const inputClass = (field) => [
       @click.self="msgModal.open = false">
       <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-5">
         <div class="flex items-center justify-between mb-3">
-          <h3 class="font-semibold text-gray-800">
-            {{
-              msgModal.mode === "single"
-                ? `${msgModal.student?.name}ga xabar`
-                : msgModal.target === "unpaid"
-                  ? "To'lov qilmaganlarga xabar"
-                  : "Barcha o'quvchilarga xabar"
-            }}
-          </h3>
+          <h3 class="font-semibold text-gray-800">{{ msgTitle }}</h3>
           <button @click="msgModal.open = false" class="text-gray-400 hover:text-gray-600 text-xl leading-none">
             ×
           </button>
         </div>
 
-        <!-- Kimga yuborish: barchaga yoki to'lov qilmaganlarga -->
+        <!-- Kimga yuborish -->
         <div v-if="msgModal.mode !== 'single'" class="grid grid-cols-2 gap-2 mb-3">
-          <button @click="msgModal.target = 'all'" :class="[
-            'px-3 py-2 rounded-xl text-xs sm:text-sm font-medium border transition',
-            msgModal.target === 'all'
+          <button v-for="t in msgTargets" :key="t.key" @click="msgModal.target = t.key" :class="[
+            'px-3 py-2 rounded-xl text-xs sm:text-sm font-medium border transition flex items-center gap-1.5 justify-center',
+            msgModal.target === t.key
               ? 'bg-sky-500 text-white border-sky-500'
               : 'border-gray-200 text-gray-600 hover:bg-gray-50',
           ]">
-            <AppIcon name="users" /> Barchaga
-          </button>
-          <button @click="msgModal.target = 'unpaid'" :class="[
-            'px-3 py-2 rounded-xl text-xs sm:text-sm font-medium border transition',
-            msgModal.target === 'unpaid'
-              ? 'bg-sky-500 text-white border-sky-500'
-              : 'border-gray-200 text-gray-600 hover:bg-gray-50',
-          ]">
-            <AppIcon name="payment" /> To'lov qilmaganlar ({{ unpaidStudentIds.length }})
+            <AppIcon :name="t.icon" />
+            {{ t.label }}
+            <span v-if="t.key === 'unpaid'">({{ unpaidStudentIds.length }})</span>
           </button>
         </div>
 
-        <p class="text-xs text-gray-400 mb-2">
+        <p v-if="msgHasPlaceholders" class="text-xs text-gray-400 mb-2">
           {ism} — o'quvchi ismi, {oy} — tanlangan oy ({{ monthLabel }})
           bilan avtomatik almashtiriladi. Xabar faqat botga ulangan
           o'quvchilarga boradi.
+        </p>
+        <p v-else class="text-xs text-gray-400 mb-2">
+          Xabar faqat botga ulanganlarga boradi.
+          <span v-if="msgModal.target === 'leads'">
+            Leadlar botga o'zlari yozgan bo'lsagina xabar oladi.
+          </span>
         </p>
 
         <textarea v-model="msgModal.text" rows="5"

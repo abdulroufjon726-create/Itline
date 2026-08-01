@@ -352,11 +352,6 @@ const formatDate = (date) => {
   if (isNaN(d)) return date;
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
-const stageStyle = (stage) => {
-  if (stage <= 2) return { backgroundColor: "#E1F5EE", color: "#085041" };
-  if (stage <= 4) return { backgroundColor: "#E6F1FB", color: "#0C447C" };
-  return { backgroundColor: "#FAEEDA", color: "#633806" };
-};
 </script>
 
 <template>
@@ -526,9 +521,6 @@ const stageStyle = (stage) => {
               </p>
               <span v-if="user.is_admin" class="text-xs text-gray-400 truncate">{{ student.phone }}</span>
               <div class="flex flex-wrap items-center gap-1.5 mt-1">
-                <span class="text-xs px-2 py-0.5 rounded-full font-medium" :style="stageStyle(student.stage)">
-                  {{ student.stage }}-etap
-                </span>
                 <span v-if="getStudentGroup(student.id)"
                   class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
                   <AppIcon name="groups" /> {{ getStudentGroup(student.id).name }}
@@ -702,7 +694,7 @@ const stageStyle = (stage) => {
 
           <!-- Tafsilotlar -->
           <div v-if="openPayments.has(payment.id)" class="px-4 pb-4 border-t border-gray-50 pt-3">
-            <p class="text-xs text-gray-400 mb-1">Oylik to'lov ({{ payment.stage }}-etap)</p>
+            <p class="text-xs text-gray-400 mb-1">Oylik to'lov</p>
             <div class="flex items-baseline gap-2 flex-wrap">
               <p class="text-2xl font-bold">{{ formatMoney(netDue(payment)) }}</p>
               <span v-if="payment.discount > 0" class="text-sm text-gray-400 line-through">
