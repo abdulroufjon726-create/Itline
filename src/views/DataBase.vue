@@ -156,6 +156,7 @@
                   <th v-if="activeTab === 'leads'" class="px-3 py-2.5 font-medium">Qiziqish</th>
                   <th v-if="activeTab === 'grads'" class="px-3 py-2.5 font-medium">O'qituvchi</th>
                   <th class="px-3 py-2.5 font-medium">Izoh</th>
+                  <th v-if="canDeleteLead" class="px-3 py-2.5 font-medium w-10"></th>
                 </tr>
               </thead>
               <tbody>
@@ -185,6 +186,17 @@
                   </td>
                   <td v-if="activeTab === 'grads'" class="px-3 py-2 text-slate-500">{{ row.teacher_name || '·' }}</td>
                   <td class="px-3 py-2 text-slate-400 max-w-[240px] truncate" :title="row.note">{{ row.note || '·' }}</td>
+                  <td v-if="canDeleteLead" class="px-3 py-2 text-right">
+                    <button
+                      v-if="activeTab === 'leads'"
+                      @click="removeLead(row)"
+                      :disabled="deleting === row.id"
+                      title="Leadni o'chirish"
+                      class="text-slate-300 hover:text-rose-500 transition disabled:opacity-40"
+                    >
+                      <AppIcon name="trash" />
+                    </button>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -240,6 +252,7 @@
 import { ref, computed, onMounted, watch } from "vue";
 import { API_BASE } from "@/config";
 import AppIcon from "@/components/AppIcon.vue";
+import { apiSend, isSuper } from "@/utils/managerApi";
 
 const API = `${API_BASE}/api`;
 
@@ -291,6 +304,26 @@ const tel = (v) => {
 };
 
 watch([search, activeTab], () => (page.value = 1));
+
+// Lead o'chirish faqat supermenejerda — import qilingan ro'yxatni
+// tozalash uchun
+const canDeleteLead = isSuper();
+const deleting = ref(null);
+
+async function removeLead(row) {
+  if (!confirm(`${row.name} (${row.phone}) o'chirilsinmi?`)) return;
+  deleting.value = row.id;
+  try {
+    const { ok, data } = await apiSend(`/leads/${row.id}/delete/`, "DELETE");
+    if (!ok) {
+      alert(data.error || "O'chirilmadi");
+      return;
+    }
+    leads.value = leads.value.filter((l) => l.id !== row.id);
+  } finally {
+    deleting.value = null;
+  }
+}
 
 async function fetchAll() {
   loadingAll.value = true;
