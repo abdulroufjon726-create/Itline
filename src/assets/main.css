@@ -59,18 +59,27 @@ html[data-theme] body {
 [data-theme="dark"] {
   --d-bg: #0e1117;
 
-  /* Yuzalar — oq qatlam qalinligi bo'yicha */
-  --d-surface: rgb(255 255 255 / 0.05);
-  --d-surface-2: rgb(255 255 255 / 0.09);
-  --d-surface-3: rgb(255 255 255 / 0.14);
+  /* Yuzalar — oq qatlam qalinligi bo'yicha.
+     Avval 5% edi: karta fondan deyarli ajralmay, chegarasi ko'rinmay
+     qolardi. 8% da karta aniq ko'rinadi, lekin hali ham "yorqin quti"
+     emas — qorong'i rejimning maqsadi shu. */
+  --d-surface: rgb(255 255 255 / 0.08);
+  --d-surface-2: rgb(255 255 255 / 0.13);
+  --d-surface-3: rgb(255 255 255 / 0.18);
 
-  --d-border: rgb(255 255 255 / 0.1);
+  --d-border: rgb(255 255 255 / 0.14);
 
-  --d-text: rgb(255 255 255 / 0.92);
-  --d-text-2: rgb(255 255 255 / 0.64);
-  --d-text-3: rgb(255 255 255 / 0.42);
+  /* Ikkilamchi matn 64% da xiraroq edi — endi 72%, uchinchi daraja
+     esa 42% dan 55% ga: mayda izohlar ham o'qiladi */
+  --d-text: rgb(255 255 255 / 0.95);
+  --d-text-2: rgb(255 255 255 / 0.72);
+  --d-text-3: rgb(255 255 255 / 0.55);
 
-  --d-accent: #6366f1;
+  /* Aksent — tugma va faol menyu foni. Ustidagi oq matn WCAG AA
+     (4.5:1) dan o'tishi kerak: #6366f1 da 4.47 bo'lib arang
+     yetmasdi, #5b5cf0 da 4.96. Farq ko'zga sezilmaydi, lekin
+     kichik yozuvlar aniq o'qiladi. */
+  --d-accent: #5b5cf0;
 
   background-color: var(--d-bg);
   color-scheme: dark;
@@ -130,7 +139,7 @@ html[data-theme] body {
 [data-theme="dark"] .hover\:bg-gray-700:hover,
 [data-theme="dark"] .hover\:bg-gray-800:hover,
 [data-theme="dark"] .hover\:bg-slate-800:hover {
-  background-color: #7c7ff3;
+  background-color: #6d6ef2;
 }
 
 /* Rangli och fonlar. Tailwind palitrasida yaqin ranglar ko'p
@@ -163,11 +172,13 @@ html[data-theme] body {
 }
 /* Yorqinroq belgilar (badge) — 100 darajasi */
 [data-theme="dark"] .bg-emerald-100,
-[data-theme="dark"] .bg-green-100 {
+[data-theme="dark"] .bg-green-100,
+[data-theme="dark"] .bg-green-200 {
   background-color: rgb(16 185 129 / 0.18);
 }
 [data-theme="dark"] .bg-amber-100,
-[data-theme="dark"] .bg-yellow-100 {
+[data-theme="dark"] .bg-yellow-100,
+[data-theme="dark"] .bg-orange-100 {
   background-color: rgb(245 158 11 / 0.18);
 }
 [data-theme="dark"] .bg-rose-100,
@@ -210,43 +221,87 @@ html[data-theme] body {
 [data-theme="dark"] .hover\:text-slate-800:hover {
   color: var(--d-text);
 }
-/* Matn ranglari ham o'sha uch oila + aksent bo'yicha. To'q fonda
-   600-800 darajali ranglar o'qilmaydi, shuning uchun hammasi bitta
-   yorqin qiymatga keltiriladi. */
-[data-theme="dark"] .text-emerald-700,
-[data-theme="dark"] .text-emerald-600,
+/* Matn ranglari ham o'sha uch oila + aksent bo'yicha.
+   To'q fonda 400 dan yuqori darajalar o'qilmaydi — masalan
+   `bg-indigo-100 text-indigo-700` belgisi tungi rejimda to'q ko'k
+   matn to'q ko'k fonda bo'lib qolardi.
+   Shuning uchun har oilaning BARCHA to'q darajalari bitta yorqin
+   qiymatga keltiriladi. Yangi rang ishlatsangiz shu ro'yxatga
+   qo'shing — aks holda u tungi rejimda ko'rinmay qoladi. */
+[data-theme="dark"] .text-emerald-400,
 [data-theme="dark"] .text-emerald-500,
-[data-theme="dark"] .text-green-700,
+[data-theme="dark"] .text-emerald-600,
+[data-theme="dark"] .text-emerald-700,
+[data-theme="dark"] .text-emerald-800,
+[data-theme="dark"] .text-emerald-900,
+[data-theme="dark"] .text-green-500,
 [data-theme="dark"] .text-green-600,
-[data-theme="dark"] .text-teal-600 {
+[data-theme="dark"] .text-green-700,
+[data-theme="dark"] .text-green-800,
+[data-theme="dark"] .text-green-900,
+[data-theme="dark"] .text-teal-500,
+[data-theme="dark"] .text-teal-600,
+[data-theme="dark"] .text-teal-700 {
   color: #5eead4;
 }
-[data-theme="dark"] .text-amber-800,
-[data-theme="dark"] .text-amber-700,
-[data-theme="dark"] .text-amber-600,
+[data-theme="dark"] .text-amber-300,
+[data-theme="dark"] .text-amber-400,
 [data-theme="dark"] .text-amber-500,
+[data-theme="dark"] .text-amber-600,
+[data-theme="dark"] .text-amber-700,
+[data-theme="dark"] .text-amber-800,
+[data-theme="dark"] .text-amber-900,
+[data-theme="dark"] .text-amber-950,
+[data-theme="dark"] .text-yellow-500,
 [data-theme="dark"] .text-yellow-600,
+[data-theme="dark"] .text-yellow-700,
+[data-theme="dark"] .text-yellow-800,
+[data-theme="dark"] .text-orange-400,
+[data-theme="dark"] .text-orange-500,
+[data-theme="dark"] .text-orange-600,
 [data-theme="dark"] .text-orange-700,
-[data-theme="dark"] .text-orange-600 {
+[data-theme="dark"] .text-orange-800 {
   color: #fcd34d;
 }
-[data-theme="dark"] .text-red-600,
-[data-theme="dark"] .text-red-500,
+[data-theme="dark"] .text-red-300,
 [data-theme="dark"] .text-red-400,
-[data-theme="dark"] .text-rose-700,
+[data-theme="dark"] .text-red-500,
+[data-theme="dark"] .text-red-600,
+[data-theme="dark"] .text-red-700,
+[data-theme="dark"] .text-red-800,
+[data-theme="dark"] .text-rose-400,
+[data-theme="dark"] .text-rose-500,
 [data-theme="dark"] .text-rose-600,
-[data-theme="dark"] .text-rose-500 {
+[data-theme="dark"] .text-rose-700,
+[data-theme="dark"] .text-rose-800,
+[data-theme="dark"] .text-pink-500,
+[data-theme="dark"] .text-pink-600,
+[data-theme="dark"] .text-pink-700 {
   color: #fda4af;
 }
-[data-theme="dark"] .text-indigo-600,
-[data-theme="dark"] .text-indigo-500,
 [data-theme="dark"] .text-indigo-400,
-[data-theme="dark"] .text-violet-700,
+[data-theme="dark"] .text-indigo-500,
+[data-theme="dark"] .text-indigo-600,
+[data-theme="dark"] .text-indigo-700,
+[data-theme="dark"] .text-indigo-800,
+[data-theme="dark"] .text-indigo-900,
+[data-theme="dark"] .text-violet-400,
+[data-theme="dark"] .text-violet-500,
 [data-theme="dark"] .text-violet-600,
+[data-theme="dark"] .text-violet-700,
+[data-theme="dark"] .text-purple-300,
+[data-theme="dark"] .text-purple-400,
+[data-theme="dark"] .text-purple-500,
+[data-theme="dark"] .text-purple-600,
 [data-theme="dark"] .text-purple-700,
-[data-theme="dark"] .text-blue-700,
+[data-theme="dark"] .text-blue-500,
 [data-theme="dark"] .text-blue-600,
-[data-theme="dark"] .text-sky-600 {
+[data-theme="dark"] .text-blue-700,
+[data-theme="dark"] .text-blue-800,
+[data-theme="dark"] .text-sky-300,
+[data-theme="dark"] .text-sky-500,
+[data-theme="dark"] .text-sky-600,
+[data-theme="dark"] .text-sky-700 {
   color: #a5b4fc;
 }
 
