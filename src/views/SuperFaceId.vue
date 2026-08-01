@@ -101,12 +101,41 @@
             </code>
             <button
               @click="copy(d.webhook_url)"
+              :title="'Nusxa olish'"
               class="px-2.5 rounded-lg border border-slate-200 text-slate-500 text-xs hover:bg-slate-50 transition shrink-0"
             >
               <AppIcon name="check" v-if="copied === d.webhook_url" />
               <AppIcon name="database" v-else />
             </button>
           </div>
+
+          <!-- Terminalsiz sinov: soxta hodisa yuboriladi -->
+          <div class="flex items-center gap-2 mt-2">
+            <input
+              v-model="testId[d.id]"
+              placeholder="sinov uchun raqam"
+              class="w-36 border border-slate-200 rounded-lg px-2 py-1 text-xs outline-none focus:border-indigo-300 tabular-nums"
+            />
+            <button
+              @click="sendTest(d)"
+              :disabled="testing === d.id"
+              class="px-3 py-1 rounded-lg border border-slate-200 text-slate-500 text-xs hover:bg-slate-50 transition disabled:opacity-40 shrink-0"
+            >
+              <AppIcon name="send" />
+              {{ testing === d.id ? "Yuborilmoqda..." : "Sinov hodisasi" }}
+            </button>
+          </div>
+          <p
+            v-if="testResult[d.id]"
+            class="text-[11px] mt-1.5"
+            :class="testResult[d.id].ok ? 'text-emerald-600' : 'text-rose-500'"
+          >
+            {{ testResult[d.id].text }}
+          </p>
+          <p v-else class="text-[11px] text-slate-400 mt-1.5">
+            Terminal kelmasidan oldin shu tugma bilan tekshirib ko'ring —
+            xuddi terminal yuborgandek hodisa yuboriladi.
+          </p>
         </div>
       </div>
     </div>
@@ -376,6 +405,25 @@ const search = ref("");
 const onlyUnlinked = ref(false);
 const editing = ref(null);
 
+// Terminalsiz sinov
+const testId = ref({});
+const testResult = ref({});
+const testing = ref(null);
+
+// Hodisa javobiga qarab odam tushunadigan izoh
+const TEST_HINT = {
+  marked: (n) => `Davomat belgilandi — ${n}`,
+  already: (n) => `Zanjir ishlayapti. ${n}`,
+  no_lesson: () =>
+    "Zanjir ishlayapti. Bu o'quvchining guruhida bugun dars yo'q — " +
+    "shuning uchun davomat qo'yilmadi.",
+  no_group: () =>
+    "Zanjir ishlayapti. Bu o'quvchi hech qaysi guruhga biriktirilmagan.",
+  unknown: () =>
+    "Zanjir ishlayapti. Bu raqam hech kimga bog'lanmagan — " +
+    "pastdagi ro'yxatdan o'quvchiga biriktiring.",
+};
+
 const inputCls =
   "w-full border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-300";
 
@@ -488,6 +536,71 @@ async function removeDevice(d) {
   if (!ok) return say(data.error || "O'chirilmadi");
   say("O'chirildi");
   await load();
+}
+
+/**
+ * Terminal yuboradigan hodisani aynan takrorlaydi.
+ *
+ * Shu tugma butun zanjirni tekshiradi: manzil to'g'rimi, server
+ * hodisani o'qiydimi, o'quvchi topiladimi, davomat qo'yiladimi.
+ * Terminal kelmasdan oldin hammasini shu yerda ko'rib olish mumkin.
+ */
+async function sendTest(device) {
+  const personId = String(testId.value[device.id] || "").trim();
+  if (!personId) {
+    testResult.value = {
+      ...testResult.value,
+      [device.id]: { ok: false, text: "Avval sinov uchun raqam yozing" },
+    };
+    return;
+  }
+
+  testing.value = device.id;
+  try {
+    const res = await fetch(device.webhook_url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        dateTime: new Date().toISOString(),
+        AccessControllerEvent: {
+          majorEventType: 5,
+          subEventType: 75,
+          employeeNoString: personId,
+          name: "Sinov",
+          currentVerifyMode: "face",
+        },
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      testResult.value = {
+        ...testResult.value,
+        [device.id]: {
+          ok: false,
+          text: data.error || `Server ${res.status} qaytardi`,
+        },
+      };
+      return;
+    }
+
+    const hint = TEST_HINT[data.status];
+    testResult.value = {
+      ...testResult.value,
+      [device.id]: {
+        ok: true,
+        text: hint ? hint(data.note) : `Javob: ${data.status || "ok"}`,
+      },
+    };
+    await loadEvents();
+  } catch {
+    testResult.value = {
+      ...testResult.value,
+      [device.id]: { ok: false, text: "Serverga ulanib bo'lmadi" },
+    };
+  } finally {
+    testing.value = null;
+  }
 }
 
 function startLink(personId) {
