@@ -267,4 +267,5 @@ function logout() {
   localStorage.removeItem("user");
   router.push("/login");
 }
+
 </script>
