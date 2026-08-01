@@ -141,6 +141,58 @@
         </router-link>
       </div>
 
+      <!-- ══════════ HOZIR SAYTDA ══════════ -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-5 mb-4">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-sm font-semibold text-slate-700 flex items-center gap-2">
+            <span class="relative flex w-2 h-2">
+              <span
+                v-if="online.count"
+                class="animate-ping absolute inline-flex w-full h-full rounded-full bg-emerald-400 opacity-75"
+              ></span>
+              <span
+                class="relative inline-flex w-2 h-2 rounded-full"
+                :class="online.count ? 'bg-emerald-500' : 'bg-slate-300'"
+              ></span>
+            </span>
+            Hozir saytda
+            <span class="text-xs text-slate-400 font-normal">
+              {{ online.count || 0 }} kishi
+            </span>
+          </h2>
+          <span class="text-[11px] text-slate-400">
+            oxirgi {{ online.minutes || 5 }} daqiqada
+          </span>
+        </div>
+
+        <p v-if="!online.rows?.length" class="text-sm text-slate-400 py-4 text-center">
+          Hozir hech kim saytda emas
+        </p>
+        <div v-else class="flex flex-wrap gap-2">
+          <div
+            v-for="p in online.rows"
+            :key="p.phone"
+            class="flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-full bg-slate-50 border border-slate-200"
+          >
+            <span
+              class="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center text-[10px] font-bold text-emerald-700 shrink-0"
+            >
+              {{ initials(p.name) }}
+            </span>
+            <span class="text-sm text-slate-700">{{ p.name }}</span>
+            <span
+              class="text-[10px] px-1.5 py-0.5 rounded-full"
+              :class="roleClass(p.role)"
+            >
+              {{ roleLabel(p.role) }}
+            </span>
+            <span v-if="p.devices > 1" class="text-[10px] text-slate-400">
+              {{ p.devices }} qurilma
+            </span>
+          </div>
+        </div>
+      </div>
+
       <!-- ══════════ MENEJERLAR FAOLLIGI ══════════ -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div class="bg-white rounded-2xl border border-slate-200 p-5">
@@ -220,7 +272,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import AppIcon from "@/components/AppIcon.vue";
 import SuperLayout from "@/components/SuperLayout.vue";
 import { apiGet, currentUser } from "@/utils/managerApi";
@@ -230,6 +282,7 @@ const loading = ref(true);
 const month = ref(new Date().toISOString().slice(0, 7));
 const o = ref({});
 const summary = ref({});
+const online = ref({ count: 0, rows: [], minutes: 5 });
 
 const UZ_MONTHS = [
   "Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun",
@@ -260,6 +313,13 @@ const ROLE_LABEL = {
   student: "o'quvchi",
 };
 const roleLabel = (r) => ROLE_LABEL[r] || r || "—";
+
+function roleClass(role) {
+  if (role === "super") return "bg-indigo-100 text-indigo-700";
+  if (role === "manager") return "bg-indigo-100 text-indigo-700";
+  if (role === "teacher") return "bg-emerald-100 text-emerald-700";
+  return "bg-slate-100 text-slate-500";
+}
 
 const blockedDevices = computed(() => o.value.devices_blocked || 0);
 
@@ -303,12 +363,18 @@ const alerts = computed(() => {
   return list;
 });
 
+async function loadOnline() {
+  const { ok, data } = await apiGet("/super/online/");
+  if (ok) online.value = data;
+}
+
 async function load() {
   loading.value = true;
   try {
     const [ov, sm] = await Promise.all([
       apiGet(`/super/overview/?month=${month.value}`),
       apiGet("/super/activity/summary/?days=7"),
+      loadOnline(),
     ]);
     o.value = ov.ok ? ov.data : {};
     summary.value = sm.ok ? sm.data : {};
@@ -317,6 +383,15 @@ async function load() {
   }
 }
 
+// Onlayn ro'yxati tez eskiradi — sahifa ochiq turganda yangilab boramiz
+let onlineTimer = null;
+
 watch(month, load);
-onMounted(load);
+onMounted(() => {
+  load();
+  onlineTimer = setInterval(() => {
+    if (document.visibilityState === "visible") loadOnline();
+  }, 30_000);
+});
+onUnmounted(() => clearInterval(onlineTimer));
 </script>

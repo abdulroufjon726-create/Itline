@@ -146,6 +146,11 @@ const routes = [
     meta: { requiresAuth: true, requiresSuper: true },
   },
   {
+    path: "/super/faceid",
+    component: lazy("SuperFaceId"),
+    meta: { requiresAuth: true, requiresSuper: true },
+  },
+  {
     path: "/super/devices",
     component: lazy("SuperDevices"),
     meta: { requiresAuth: true, requiresSuper: true },
