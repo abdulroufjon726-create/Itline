@@ -133,7 +133,6 @@ if (availableTabKeys.value.length && !availableTabKeys.value.includes(activeTab.
 }
 
 const teachers = ref([]);
-const stagePrices = ref([]);
 const payments = ref([]);
 const groups = ref([]);
 const courses = ref([]);
@@ -159,7 +158,6 @@ const attTeacherGroups = computed(() =>
 
 const selectedMonth = ref(new Date().toISOString().slice(0, 7));
 const selectedTeacherId = ref("");
-const editingPrice = ref(null);
 
 const historyTeacherId = ref("");
 const historyMonth = ref(new Date().toISOString().slice(0, 7));
@@ -220,17 +218,6 @@ async function fetchTeachers() {
   } catch (e) {
     console.error("Fetch Teachers Error:", e);
     teachers.value = [];
-  }
-}
-
-async function fetchStagePrices() {
-  try {
-    const res = await fetch(`${API}/stage-prices/`);
-    if (!res.ok) throw new Error("Bosqich narxlarini yuklashda xatolik");
-    stagePrices.value = await res.json();
-  } catch (e) {
-    console.error("Fetch Stage Prices Error:", e);
-    stagePrices.value = [];
   }
 }
 
@@ -319,7 +306,6 @@ async function fetchHistoryPayments() {
 onMounted(async () => {
   await Promise.allSettled([
     fetchTeachers(),
-    fetchStagePrices(),
     fetchCourses(),
     fetchGroups(),
   ]);
@@ -588,28 +574,6 @@ watch(selectedAttMonth, async () => {
     selectStudentForAtt(selectedStudent.value);
   }
 });
-
-function startEditPrice(sp) {
-  editingPrice.value = { stage: sp.stage, value: sp.price };
-}
-
-async function savePrice() {
-  if (!editingPrice.value) return;
-  const res = await fetch(
-    `${API}/stage-prices/update/${editingPrice.value.stage}/`,
-    {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ price: editingPrice.value.value }),
-    },
-  );
-  const data = await res.json();
-  const sp = stagePrices.value.find(
-    (s) => s.stage === editingPrice.value.stage,
-  );
-  if (sp) sp.price = data.price;
-  editingPrice.value = null;
-}
 
 async function generatePayments() {
   if (!confirm(`${selectedMonth.value} uchun to'lovlarni yaratish?`)) return;

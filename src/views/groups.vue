@@ -804,9 +804,6 @@ async function sendGroupMsg() {
                         </p>
                         <p class="text-xs text-gray-400">{{ s.phone }}</p>
                       </div>
-                      <span class="text-xs text-gray-400 shrink-0 bg-gray-100 px-2 py-0.5 rounded-full">
-                        {{ s.stage }}-etap
-                      </span>
                       <button v-if="canCreateGroup" @click.stop="deleteStudent(s)"
                         title="Studentni butunlay o'chirish"
                         class="shrink-0 text-gray-300 hover:text-red-500 transition text-sm px-1.5 py-1 rounded-lg hover:bg-red-50">
@@ -948,7 +945,6 @@ async function sendGroupMsg() {
                           </p>
                           <p class="text-xs text-gray-400">{{ s.phone }}</p>
                         </div>
-                        <span class="text-xs text-gray-400 shrink-0">{{ s.stage }}-etap</span>
                       </div>
                     </div>
                     <p v-else-if="
