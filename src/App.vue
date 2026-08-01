@@ -1,6 +1,33 @@
 <script setup>
+import { onMounted, onUnmounted } from 'vue'
 import Loading from './components/Loading.vue'
 import PwaInstall from './components/PwaInstall.vue'
+import { apiSend, currentUser } from '@/utils/managerApi'
+
+// ── Onlayn belgisi ──
+// Supermenejer kim hozir saytda ekanini ko'radi. Buning uchun
+// ochiq bo'lgan sahifa vaqti-vaqti bilan "men shu yerdaman" deb
+// signal yuboradi. Yashirin (background) tabdan yuborilmaydi —
+// aks holda yopilmagan tab odamni abadiy onlayn ko'rsatardi.
+const PING_MS = 60_000
+let timer = null
+
+function ping() {
+  if (document.visibilityState !== 'visible') return
+  if (!currentUser()) return
+  apiSend('/presence/ping/', 'POST').catch(() => {})
+}
+
+onMounted(() => {
+  ping()
+  timer = setInterval(ping, PING_MS)
+  document.addEventListener('visibilitychange', ping)
+})
+
+onUnmounted(() => {
+  clearInterval(timer)
+  document.removeEventListener('visibilitychange', ping)
+})
 </script>
 
 <template>

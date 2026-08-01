@@ -207,6 +207,7 @@ const links = computed(() => [
   { to: "/super/managers", label: "Menejerlar", icon: "manager" },
   { to: "/super/salaries", label: "Ustoz oyliklari", icon: "teacher" },
   { to: "/super/finance", label: "Moliya", icon: "money" },
+  { to: "/super/faceid", label: "Yuz tanish", icon: "user" },
   {
     to: "/super/devices",
     label: "Qurilmalar",
