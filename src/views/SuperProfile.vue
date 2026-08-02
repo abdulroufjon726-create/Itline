@@ -139,7 +139,7 @@
 import { ref, reactive, computed, onMounted } from "vue";
 import AppIcon from "@/components/AppIcon.vue";
 import SuperLayout from "@/components/SuperLayout.vue";
-import { API, apiSend, currentUser } from "@/utils/managerApi";
+import { API, apiSend, currentUser, logout } from "@/utils/managerApi";
 import { useTheme } from "@/composables/useTheme";
 
 
@@ -263,9 +263,5 @@ onMounted(() => {
   form.surname = user.value?.surname || "";
 });
 
-function logout() {
-  localStorage.removeItem("user");
-  router.push("/login");
-}
 
 </script>

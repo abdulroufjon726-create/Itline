@@ -13,11 +13,6 @@ const user = JSON.parse(localStorage.getItem("user") || "null");
 if (!user) router.push("/login");
 else if (!user.is_admin) router.push("/");
 
-function logout() {
-  localStorage.removeItem("user");
-  router.push("/login");
-}
-
 // ─── Standart parol eslatmasi ────────────────────────────────
 const usingDefaultPassword = ref(
   localStorage.getItem("used_default_password") === "1",

@@ -333,10 +333,6 @@ function getStudentGroup(studentId) {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────
-const logout = () => {
-  localStorage.removeItem("user");
-  router.push("/login");
-};
 const initials = (s) =>
   ((s.name?.[0] || "") + (s.surname?.[0] || "")).toUpperCase();
 const formatSigned = (v) => (v > 0 ? `+${v}` : `${v}`);

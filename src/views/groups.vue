@@ -20,10 +20,6 @@ if (!user) {
   hasAccess.value = true;
 }
 
-function logout() {
-  localStorage.removeItem("user");
-  router.push("/login");
-}
 
 // ─────────────────────────────
 // STATE
@@ -928,7 +924,11 @@ async function sendGroupMsg() {
                   </label>
 
                   <div class="relative">
+                    <!-- autocomplete="off": brauzerning o'z takliflari
+                         (avval yozilgan so'zlar) natijalar ro'yxati
+                         ustiga tushib, ikkalasini ham o'qib bo'lmasdi -->
                     <input v-model="studentSearch" placeholder="Ism yoki telefon raqam..."
+                      autocomplete="off" spellcheck="false"
                       class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-gray-400 transition" />
                     <div v-if="searchResults.length > 0"
                       class="absolute z-10 w-full mt-1 bg-white border border-gray-100 rounded-xl shadow-lg overflow-hidden">
