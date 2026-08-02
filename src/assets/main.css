@@ -69,6 +69,14 @@ html[data-theme] body {
 
   --d-border: rgb(255 255 255 / 0.14);
 
+  /* Qatlam ustidagi qatlam — ochiluvchi ro'yxat, modal, "yopishgan"
+     pastki panel. Bular ostidagi kontentni to'sishi SHART, shuning
+     uchun shaffof emas: --d-bg ustiga 8% oq qo'yilgan qiymat aynan
+     shu (#21242a). Shaffof qoldirilsa ro'yxat ostidagi jadval yozuvi
+     ustma-ust tushib o'qib bo'lmay qoladi. */
+  --d-overlay: #21242a;
+  --d-overlay-2: #272b33;
+
   /* Ikkilamchi matn 64% da xiraroq edi — endi 72%, uchinchi daraja
      esa 42% dan 55% ga: mayda izohlar ham o'qiladi */
   --d-text: rgb(255 255 255 / 0.95);
@@ -92,14 +100,10 @@ html[data-theme] body {
 
 /* ── Fonlar ───────────────────────────────────────────────── */
 /* Oq va oqqa yaqin fonlar — shaffof qatlamga aylanadi. Shaffoflik
-   variantlari (bg-white/70 kabi) ham shu yerda: aks holda ular
-   haqiqiy oq bo'lib qolib, tungi rejimda ko'zni qamashtirardi. */
+   variantlari (bg-white/70 kabi) esa pastda, "ustma-ust tushadigan
+   yuzalar" qismida: ular deyarli har doim ustki qatlam bo'lib,
+   shaffofligi ostidagi matnni ko'rsatib yuborardi. */
 [data-theme="dark"] .bg-white,
-[data-theme="dark"] .bg-white\/70,
-[data-theme="dark"] .bg-white\/80,
-[data-theme="dark"] .bg-white\/90,
-[data-theme="dark"] .bg-white\/60,
-[data-theme="dark"] .bg-white\/50,
 [data-theme="dark"] .bg-gray-100,
 [data-theme="dark"] .bg-slate-100 {
   background-color: var(--d-surface);
@@ -114,6 +118,52 @@ html[data-theme] body {
 [data-theme="dark"] .bg-slate-50\/50,
 [data-theme="dark"] .bg-slate-50\/40 {
   background-color: transparent;
+}
+
+/* ── Ustma-ust tushadigan yuzalar ─────────────────────────────
+   Yuqoridagi qoida `bg-white` ni shaffof oq qatlamga aylantiradi.
+   Bu karta uchun to'g'ri, lekin USTIDA turadigan element uchun
+   noto'g'ri: qidiruv natijalari ro'yxati, modal oyna, sahifa
+   pastidagi "yopishgan" tugmalar paneli ostidagi kontentni to'sishi
+   kerak. Aks holda ikkita matn ustma-ust tushib, ikkalasi ham
+   o'qilmay qoladi.
+
+   Belgisi — element joylashuvi (absolute/fixed/sticky) yoki kuchli
+   soyasi (shadow-lg va undan yuqori "ko'tarilgan" qatlam demakdir). */
+[data-theme="dark"] .absolute.bg-white,
+[data-theme="dark"] .fixed.bg-white,
+[data-theme="dark"] .sticky.bg-white,
+[data-theme="dark"] .absolute.bg-gray-100,
+[data-theme="dark"] .fixed.bg-gray-100,
+[data-theme="dark"] .sticky.bg-gray-100,
+[data-theme="dark"] .absolute.bg-slate-100,
+[data-theme="dark"] .fixed.bg-slate-100,
+[data-theme="dark"] .sticky.bg-slate-100,
+[data-theme="dark"] .bg-white.shadow-lg,
+[data-theme="dark"] .bg-white.shadow-xl,
+[data-theme="dark"] .bg-white.shadow-2xl,
+[data-theme="dark"] .bg-white\/70,
+[data-theme="dark"] .bg-white\/80,
+[data-theme="dark"] .bg-white\/90,
+[data-theme="dark"] .bg-white\/60,
+[data-theme="dark"] .bg-white\/50 {
+  background-color: var(--d-overlay);
+}
+
+/* Blur bilan ishlangan "yopishgan" sarlavhalar — blur tungi rejimda
+   deyarli hech narsa bermaydi, ostidagi matn baribir ko'rinib turadi */
+[data-theme="dark"] .backdrop-blur,
+[data-theme="dark"] .backdrop-blur-sm,
+[data-theme="dark"] .backdrop-blur-md {
+  backdrop-filter: none;
+}
+
+/* Ochiluvchi ro'yxat ichidagi qatorlar ham shaffof bo'lmasin */
+[data-theme="dark"] .absolute.bg-white .bg-gray-50,
+[data-theme="dark"] .fixed.bg-white .bg-gray-50,
+[data-theme="dark"] .bg-white.shadow-xl .bg-gray-50,
+[data-theme="dark"] .bg-white.shadow-lg .bg-gray-50 {
+  background-color: var(--d-overlay-2);
 }
 
 /* bg-white/10, /20, /30 — bular allaqachon shaffof oq qatlam, ya'ni
@@ -385,9 +435,21 @@ tbody tr.hover\:bg-white\/10:hover {
 [data-theme="dark"] textarea::placeholder {
   color: var(--d-text-3);
 }
-[data-theme="dark"] option {
-  background-color: var(--d-surface);
-  color: var(--d-text);
+/* Ochilgan ro'yxat (option) brauzerning o'z oynasida chiziladi —
+   u sahifa fonini bilmaydi. Shu sababli bu yerda SHAFFOF rang
+   ishlatib bo'lmaydi: `rgb(255 255 255 / 0.08)` oq taglikka tushib,
+   oq yozuv bilan birga deyarli oq-oq bo'lib qolardi va ro'yxat
+   umuman o'qilmasdi. Faqat qattiq (opaque) qiymat. */
+[data-theme="dark"] select option,
+[data-theme="dark"] select optgroup,
+[data-theme="dark"] datalist option {
+  background-color: #21242a;
+  color: #f2f3f6;
+}
+[data-theme="dark"] select option:checked,
+[data-theme="dark"] select option:hover {
+  background-color: #2f3440;
+  color: #ffffff;
 }
 /* Sana/vaqt tanlagich ikonkasi tungi fonda ko'rinsin */
 [data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator,

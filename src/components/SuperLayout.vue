@@ -107,9 +107,10 @@
 
 <script setup>
 import { ref, computed } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { useRoute } from "vue-router";
 import AppIcon from "@/components/AppIcon.vue";
 import { useTheme } from "@/composables/useTheme";
+import { logout } from "@/utils/managerApi";
 
 const props = defineProps({
   title: { type: String, default: "Supermenejer" },
@@ -119,7 +120,6 @@ const props = defineProps({
 });
 
 const route = useRoute();
-const router = useRouter();
 const { theme, toggleTheme } = useTheme();
 
 // Yon menyu yig'ilgan holati sahifalar orasida saqlanadi
@@ -153,10 +153,5 @@ const links = computed(() => [
 // Bosh sahifa faqat aniq mos kelganda yonadi — qolganlari prefiks bo'yicha
 function isActive(link) {
   return link.exact ? route.path === link.to : route.path.startsWith(link.to);
-}
-
-function logout() {
-  localStorage.removeItem("user");
-  router.push("/login");
 }
 </script>

@@ -2,7 +2,7 @@
 import { ref, onMounted } from "vue";
 import AppIcon from "@/components/AppIcon.vue";
 import AttendanceBoard from "@/components/AttendanceBoard.vue";
-import { authHeaders } from "@/utils/managerApi";
+import { authHeaders, logout } from "@/utils/managerApi";
 
 const API = "https://itline-django-9s85.onrender.com/api";
 const user = JSON.parse(localStorage.getItem("user") || "null");
@@ -10,11 +10,6 @@ const user = JSON.parse(localStorage.getItem("user") || "null");
 const groups = ref([]);
 const loading = ref(true);
 
-function logout() {
-  localStorage.removeItem("user");
-  localStorage.removeItem("token");
-  window.location.href = "/login";
-}
 
 // Ustozning o'z guruhlari
 async function fetchGroups() {

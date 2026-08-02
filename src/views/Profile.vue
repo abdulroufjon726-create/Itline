@@ -5,6 +5,7 @@ import { useTheme } from "../composables/useTheme";
 import SunBoldIcon from "~icons/solar/sun-bold";
 import MoonTwotoneIcon from "~icons/line-md/moon-twotone";
 import AppIcon from "@/components/AppIcon.vue";
+import { logout } from "@/utils/managerApi";
 
 const API = "https://itline-django-9s85.onrender.com/api";
 const router = useRouter();
@@ -35,12 +36,6 @@ const initials = computed(() => {
 
 // ─────────── Chiqish ───────────
 const confirmLogout = ref(false);
-
-function logout() {
-  localStorage.removeItem("user");
-  localStorage.removeItem("used_default_password");
-  router.push("/login");
-}
 
 // ─────────── Shaxsiy ma'lumot ───────────
 const profile = ref({

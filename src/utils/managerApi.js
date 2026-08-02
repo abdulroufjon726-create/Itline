@@ -5,6 +5,7 @@
 // tekshiriladi. 'X-Device-Id' esa qurilmani belgilaydi: supermenejer
 // panelga qaysi qurilmalar kirayotganini shu orqali ko'radi.
 import { API_BASE } from "@/config";
+import { clearCache } from "@/utils/cache";
 
 export const API = `${API_BASE}/api`;
 
@@ -14,6 +15,32 @@ export function currentUser() {
   } catch {
     return null;
   }
+}
+
+/**
+ * Hisobdan chiqish.
+ *
+ * `router.push('/login')` yetarli emas edi: sahifa almashsa ham, ochiq
+ * turgan panelning xotiradagi holati (o'quvchilar ro'yxati, ishlab
+ * turgan setInterval'lar, keshlangan javoblar) o'chmaydi va route
+ * komponenti tarmoqdan yuklanguncha eski sahifa ko'rinib turadi —
+ * shuning uchun "chiqdim" bosilgach ham bir marta refresh qilish
+ * kerak bo'lardi.
+ *
+ * `location.replace` esa ilovani noldan ko'taradi: hech qanday eski
+ * holat qolmaydi va tarixda ham qaytadigan sahifa qolmaydi.
+ */
+export function logout() {
+  localStorage.removeItem("user");
+  localStorage.removeItem("token");
+  localStorage.removeItem("used_default_password");
+  // Router "oxirgi ochilgan sahifa" ni shu yerdan o'qiydi — tozalanmasa
+  // login sahifasi eski sahifaga qaytarib yuborishi mumkin
+  sessionStorage.removeItem("lastPath");
+  // Keshdagi ro'yxatlar ham ketsin: shu brauzerdan boshqa odam kirsa
+  // bir lahzaga oldingi menejerning ma'lumoti ko'rinib qolardi
+  clearCache();
+  window.location.replace("/login");
 }
 
 /** Shu brauzer uchun bir marta yaratiladigan barqaror qurilma ID. */

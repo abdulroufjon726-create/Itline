@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed, watch } from "vue";
+import { ref, onMounted, onUnmounted, computed, watch } from "vue";
 import { useRouter } from "vue-router";
 import AdminProducts from "./AdminProducts.vue";
 import Adminorders from "./Adminorders.vue";
@@ -14,6 +14,7 @@ import AppIcon from "@/components/AppIcon.vue";
 import AttendanceBoard from "@/components/AttendanceBoard.vue";
 import PaymentRequests from "@/components/PaymentRequests.vue";
 import { authHeaders, can, isSuper } from "@/utils/managerApi";
+import { readCache, writeCache } from "@/utils/cache";
 
 const router = useRouter();
 const API = "https://itline-django-9s85.onrender.com/api";
@@ -30,11 +31,6 @@ if (!user || !(user.is_excellence || user.role === "manager")) {
 const isManager = user?.role === "manager" && can("payments.discount", user);
 // Supermenejer — moliya va oyliklar bo'limi faqat unda ko'rinadi
 const isSuperUser = isSuper(user);
-
-function logout() {
-  localStorage.removeItem("user");
-  router.push("/login");
-}
 
 // To'lovlarni ko'rish vakolati bo'lmagan menejerga bo'sh sahifa
 // chiqmasligi uchun boshlang'ich tab keyinroq (tablar hisoblangach)
@@ -134,11 +130,16 @@ if (availableTabKeys.value.length && !availableTabKeys.value.includes(activeTab.
   activeTab.value = availableTabKeys.value[0];
 }
 
-const teachers = ref([]);
+// Oxirgi ko'rilgan ro'yxatlar darhol chiziladi, so'rov fonda ketadi.
+// Server uxlab qolgan bo'lsa (bepul plan) sahifa bo'sh turmaydi.
+const teachers = ref(readCache("teachers", []));
 const payments = ref([]);
-const groups = ref([]);
-const courses = ref([]);
+const groups = ref(readCache("groups", []));
+const courses = ref(readCache("courses", []));
 const loading = ref(false);
+// Server uyg'onishini kutayotganimizni aytadigan belgi — "Yuklanmoqda"
+// uzoq davom etsa odam nima bo'layotganini bilsin
+const slowServer = ref(false);
 const generating = ref(false);
 
 const selectedTeacherForAtt = ref(null);
@@ -213,13 +214,17 @@ async function fetchTeachers() {
     const res = await fetch(`${API}/teachers/`);
     if (!res.ok) {
       const res2 = await fetch(`${API}/teachers/create/`);
-      teachers.value = res2.ok ? await res2.json() : [];
+      if (res2.ok) {
+        teachers.value = await res2.json();
+        writeCache("teachers", teachers.value);
+      }
       return;
     }
     teachers.value = await res.json();
+    writeCache("teachers", teachers.value);
   } catch (e) {
     console.error("Fetch Teachers Error:", e);
-    teachers.value = [];
+    // Keshdagi ro'yxat qoladi — xato tufayli ekranni bo'shatmaymiz
   }
 }
 
@@ -228,9 +233,9 @@ async function fetchCourses() {
     const res = await fetch(`${API}/courses/`);
     if (!res.ok) throw new Error("Kurslarni yuklashda xatolik");
     courses.value = await res.json();
+    writeCache("courses", courses.value);
   } catch (e) {
     console.error("Fetch Courses Error:", e);
-    courses.value = [];
   }
 }
 
@@ -239,14 +244,26 @@ async function fetchGroups() {
     const res = await fetch(`${API}/groups/`);
     if (!res.ok) throw new Error("Guruhlarni yuklashda xatolik");
     groups.value = await res.json();
+    writeCache("groups", groups.value);
   } catch (e) {
     console.error("Fetch Groups Error:", e);
-    groups.value = [];
   }
 }
 
+function paymentsCacheKey() {
+  return `payments:${selectedMonth.value}:${selectedTeacherId.value || "all"}`;
+}
+
 async function fetchPayments() {
-  loading.value = true;
+  const cacheKey = paymentsCacheKey();
+  const cached = readCache(cacheKey);
+  if (cached) {
+    // Eski ro'yxat darhol ko'rinadi, yangisi kelganda almashadi —
+    // "Yuklanmoqda..." yozuvi umuman chiqmaydi
+    payments.value = cached;
+  } else {
+    loading.value = true;
+  }
   try {
     let url = `${API}/payments/?month=${selectedMonth.value}`;
     if (selectedTeacherId.value) {
@@ -270,9 +287,12 @@ async function fetchPayments() {
         payment.checked,
       ),
     }));
+    writeCache(cacheKey, payments.value);
   } catch (e) {
     console.error("Fetch Payments Error:", e);
-    payments.value = [];
+    // Kesh bo'lsa o'sha ko'rinib tursin — bo'sh jadval xatoni
+    // "to'lov yo'q" deb ko'rsatib qo'yardi
+    if (!cached) payments.value = [];
   } finally {
     loading.value = false;
   }
@@ -305,16 +325,32 @@ async function fetchHistoryPayments() {
   }
 }
 
-onMounted(async () => {
-  await Promise.allSettled([
-    fetchTeachers(),
-    fetchCourses(),
-    fetchGroups(),
-  ]);
-  await fetchPayments();
+let reqCountTimer = null;
+let slowTimer = null;
+
+onUnmounted(() => {
+  clearTimeout(slowTimer);
+  clearInterval(reqCountTimer);
+});
+
+onMounted(() => {
+  // Hammasi BARAVARIGA ketadi. Ilgari to'lovlar ro'yxati ustozlar/
+  // kurslar/guruhlar kelguncha kutib turardi — ya'ni sahifa ochilishi
+  // ikki marta serverga borib kelish vaqtini olardi. Server uxlab
+  // qolgan bo'lsa bu farq bir necha o'n soniya edi.
+  fetchTeachers();
+  fetchCourses();
+  fetchGroups();
+  fetchPayments();
   fetchTgStatus();
   loadPendingReqCount();
-  setInterval(() => {
+
+  // Kutish cho'zilsa sababini aytamiz (bepul planda server uxlaydi)
+  slowTimer = setTimeout(() => {
+    if (loading.value) slowServer.value = true;
+  }, 4000);
+
+  reqCountTimer = setInterval(() => {
     if (document.visibilityState === "visible") loadPendingReqCount();
   }, 15000);
 });
@@ -1420,6 +1456,10 @@ const inputClass = (field) => [
 
       <div v-if="loading" class="text-center py-8 text-gray-400">
         Yuklanmoqda...
+        <p v-if="slowServer" class="text-xs text-gray-400 mt-2 max-w-xs mx-auto leading-relaxed">
+          Server uyqudan uyg'onmoqda — birinchi ochilish yarim
+          daqiqagacha cho'zilishi mumkin. Sahifani yopmang.
+        </p>
       </div>
       <div v-else class=" border border-white/20 rounded-2xl overflow-x-auto">
         <table class="pay-nowrap w-full text-sm min-w-[1260px]">

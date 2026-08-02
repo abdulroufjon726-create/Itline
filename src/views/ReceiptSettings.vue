@@ -60,9 +60,13 @@
             class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-300 font-mono resize-y"
           ></textarea>
 
-          <p class="text-[11px] text-slate-400 mt-2">
+          <p class="text-[11px] text-slate-400 mt-2 leading-relaxed">
             <b>&lt;b&gt;matn&lt;/b&gt;</b> qalin,
-            <i>&lt;i&gt;matn&lt;/i&gt;</i> qiya yozadi.
+            <i>&lt;i&gt;matn&lt;/i&gt;</i> qiya,
+            <u>&lt;u&gt;matn&lt;/u&gt;</u> tagi chizilgan,
+            <code class="font-mono">&lt;code&gt;matn&lt;/code&gt;</code>
+            bir xil kenglikdagi shrift bilan yozadi — raqamlar ustma-ust
+            tik tursin desangiz shuni ishlating.
           </p>
 
           <!-- O'rniga qo'yiladiganlar -->
@@ -140,19 +144,23 @@ const SAMPLE = {
   "{guruh}": "Frontend-1",
 };
 
+// Telegram HTML rejimida tushunadigan teglar — serverdagi ro'yxat
+// bilan bir xil (register_withvue/telegram.py, _ALLOWED_TAGS)
+const ALLOWED_TAGS = ["b", "strong", "i", "em", "u", "s", "code", "pre"];
+const TAG_RE = new RegExp(`&lt;(/?)(${ALLOWED_TAGS.join("|")})&gt;`, "gi");
+
 const previewHtml = computed(() => {
   let t = form.template || "";
   for (const [k, v] of Object.entries(SAMPLE)) t = t.split(k).join(v);
   t = t.split("{markaz}").join(form.center_name || "");
-  // Telegram faqat shu teglarni tushunadi — boshqasini ko'rsatmaymiz
+  // Server bilan bir xil tartib: avval hammasi qochiriladi, keyin
+  // faqat ruxsat etilgan teglar qaytariladi. Shunda namuna o'quvchi
+  // ko'radigan chekdan farq qilmaydi.
   return t
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/&lt;b&gt;/g, "<b>")
-    .replace(/&lt;\/b&gt;/g, "</b>")
-    .replace(/&lt;i&gt;/g, "<i>")
-    .replace(/&lt;\/i&gt;/g, "</i>");
+    .replace(TAG_RE, (_, slash, tag) => `<${slash}${tag.toLowerCase()}>`);
 });
 
 function say(text, good) {
