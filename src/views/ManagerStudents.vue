@@ -41,6 +41,29 @@
 
       <div v-else-if="!students.length" class="p-16 text-center">
         <p class="text-sm text-slate-400">Hech narsa topilmadi</p>
+
+        <!-- Ro'yxat ustozning admin profilini, menejer profilini va
+             bitiruvchini yashiradi. Login va ro'yxatdan o'tkazish esa
+             ularni ko'radi — shuning uchun "topilmadi" bo'lsa ham
+             "bu raqam band" degan xato chiqishi mumkin. Sababini
+             aytmasak, izlash imkonsiz. -->
+        <div v-if="hidden.length"
+          class="mt-5 mx-auto max-w-md rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-left">
+          <p class="text-xs font-medium text-amber-700">
+            Bu raqam band, lekin ro'yxatda ko'rsatilmaydi:
+          </p>
+          <ul class="mt-2 space-y-1">
+            <li v-for="h in hidden" :key="h.id" class="text-xs text-amber-600">
+              <span class="font-medium">{{ h.name }}</span> — {{ h.kind }}
+            </li>
+          </ul>
+          <p class="text-[11px] text-amber-500 mt-2 leading-relaxed">
+            Bitiruvchi bo'lsa «Bitiruvchilar ham» katagini belgilang.
+            Ustoz yoki menejer profili bo'lsa u shu ro'yxatga umuman
+            tushmaydi — uni «Ustozlar» yoki «Menejerlar» bo'limidan
+            qidiring.
+          </p>
+        </div>
       </div>
 
       <template v-else>
@@ -242,6 +265,9 @@ const isManager = computed(() => user?.role === "manager");
 
 const teachers = ref([]);
 const students = ref([]);
+// Qidiruvga mos, lekin ro'yxatda ko'rsatilmaydigan yozuvlar
+// (bitiruvchi, ustoz/menejer profili) — "topilmadi" ni tushuntiradi
+const hidden = ref([]);
 const loading = ref(true);
 const activeTeacher = ref("");
 const search = ref("");
@@ -356,6 +382,7 @@ async function fetchStudents() {
     if (includeGraduates.value) p.set("include_graduates", "1");
     const { data } = await apiGet(`/students/overview/?${p}`);
     students.value = data.students || [];
+    hidden.value = data.hidden || [];
   } catch (e) {
     console.error("students/overview:", e);
     say("Ma'lumot yuklanmadi");
