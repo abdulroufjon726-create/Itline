@@ -460,7 +460,7 @@ const groupedPayments = computed(() => {
   return arr;
 });
 
-// Jadval uchun bo'limlar: guruh rejimida guruhlar, aks holda bitta bo'lim
+// Jadval uchun bo'limlar: guruh rejimида guruhlar, aks holda bitta bo'lim
 // (sahifalangan). Bitta v-for shabloni ikkala holatda ishlaydi.
 const displaySections = computed(() => {
   if (groupByGroup.value) return groupedPayments.value;
@@ -505,7 +505,7 @@ async function fetchTgStatus() {
 const msgModal = ref({
   open: false,
   mode: "single", // single | all
-  target: "all", // "all" rejimida: all | unpaid (to'lov qilmaganlar)
+  target: "all", // "all" rejимида: all | unpaid (to'lov qilmaganlar)
   student: null,
   sending: false,
   text: "",
@@ -568,7 +568,7 @@ async function deleteStudentRow(payment) {
 }
 
 // Kimga yuborish mumkin — har biri o'z vakolatiga bog'liq.
-// Supermenejer olib tashlasa, tugma menejerga umuman ko'rinmaydi.
+// Supermenejer olib tashlasa, tugma menejerга umuman ko'rinmaydi.
 const MSG_TARGETS = [
   { key: "all", label: "Barchaga", icon: "users", perm: "messages.send" },
   { key: "unpaid", label: "To'lov qilmaganlar", icon: "payment", perm: "messages.send" },
@@ -1154,14 +1154,6 @@ async function submitAdd() {
     return;
   }
 
-  // Oddiy o'quvchi uchun raqam bot orqali tasdiqlangan bo'lishi shart
-  if (role === "student" && normalizedPhone !== verify.value.verifiedPhone) {
-    verify.value.error =
-      "Avval telefon raqamni bot orqali tasdiqlang (Kod yuborish tugmasi)";
-    addMarkError("phone");
-    return;
-  }
-
   addLoading.value = true;
   try {
     const payload = {
@@ -1205,91 +1197,6 @@ async function submitAdd() {
     // addNetworkError ko'rsatiladi
   } finally {
     addLoading.value = false;
-  }
-}
-
-// ══════════ TELEFONNI BOT ORQALI TASDIQLASH ══════════
-const verify = ref({
-  sending: false,
-  checking: false,
-  codeSent: false,
-  verifiedPhone: "", // tasdiqlangan raqam (normalizatsiya qilingan)
-  code: "",
-  error: "",
-  notLinked: false,
-});
-
-const BOT_USERNAME = "itline_test_2026bot";
-
-// Raqam o'zgarsa tasdiq bekor bo'ladi
-watch(
-  () => addForm.value.phone,
-  () => {
-    verify.value.codeSent = false;
-    verify.value.verifiedPhone = "";
-    verify.value.code = "";
-    verify.value.error = "";
-    verify.value.notLinked = false;
-  },
-);
-
-const phoneVerified = computed(() => {
-  const p = safeNormalizePhone(addForm.value.phone);
-  return !!p && p === verify.value.verifiedPhone;
-});
-
-async function sendVerifyCode() {
-  const phone = safeNormalizePhone(addForm.value.phone);
-  if (!phone) {
-    addMarkError("phone");
-    return;
-  }
-  verify.value.sending = true;
-  verify.value.error = "";
-  verify.value.notLinked = false;
-  try {
-    const res = await fetch(`${API}/verify/send-code/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      verify.value.error = data.error || "Kod yuborib bo'lmadi";
-      verify.value.notLinked = !!data.not_linked;
-      return;
-    }
-    verify.value.codeSent = true;
-  } catch {
-    verify.value.error = "Internet aloqasi yo'q";
-  } finally {
-    verify.value.sending = false;
-  }
-}
-
-async function checkVerifyCode() {
-  const phone = safeNormalizePhone(addForm.value.phone);
-  const code = verify.value.code.trim();
-  if (!phone || code.length < 4) return;
-  verify.value.checking = true;
-  verify.value.error = "";
-  try {
-    const res = await fetch(`${API}/verify/check-code/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone, code }),
-    });
-    const data = await res.json();
-    if (!res.ok || !data.verified) {
-      verify.value.error = data.error || "Kod noto'g'ri";
-      return;
-    }
-    verify.value.verifiedPhone = phone;
-    verify.value.error = "";
-  } catch {
-    verify.value.error = "Internet aloqasi yo'q";
-  } finally {
-    verify.value.checking = false;
   }
 }
 
@@ -1899,50 +1806,8 @@ const inputClass = (field) => [
         </div>
         <div>
           <label class="block text-xs text-gray-400 mb-1.5">Telefon</label>
-          <div class="flex gap-2">
-            <input type="tel" v-model="addForm.phone" placeholder="+998 90 000 00 00"
-              :class="[inputClass('phone'), 'flex-1']" />
-            <button v-if="detectedRole === 'student' && !phoneVerified" @click="sendVerifyCode"
-              :disabled="verify.sending || !addForm.phone"
-              class="px-3 rounded-xl bg-sky-500 text-white text-xs font-medium hover:bg-sky-600 transition disabled:opacity-50 whitespace-nowrap shrink-0">
-              {{ verify.sending ? "..." : verify.codeSent ? "Qayta" : "Kod yuborish" }}
-            </button>
-            <span v-else-if="phoneVerified"
-              class="px-3 flex items-center rounded-xl bg-green-50 text-green-600 text-xs font-medium border border-green-200 whitespace-nowrap shrink-0">
-              <AppIcon name="check" /> Tasdiqlandi
-            </span>
-          </div>
-
-          <!-- Kod kiritish -->
-          <div v-if="detectedRole === 'student' && verify.codeSent && !phoneVerified" class="mt-2 flex gap-2">
-            <input type="text" inputmode="numeric" maxlength="6" v-model="verify.code" @keyup.enter="checkVerifyCode"
-              placeholder="Botdan kelgan 6 xonali kod"
-              class="flex-1 px-3 py-2.5 rounded-xl border border-sky-200 bg-sky-50/40 outline-none focus:border-sky-400 transition text-sm tabular-nums tracking-widest" />
-            <button @click="checkVerifyCode" :disabled="verify.checking || verify.code.trim().length < 4"
-              class="px-4 rounded-xl bg-gray-900 text-white text-xs font-medium hover:bg-gray-700 transition disabled:opacity-50 whitespace-nowrap shrink-0">
-              {{ verify.checking ? "..." : "Tasdiqlash" }}
-            </button>
-          </div>
-
-          <!-- Yordam / xato -->
-          <p v-if="detectedRole === 'student' && verify.codeSent && !phoneVerified && !verify.error"
-            class="text-xs text-sky-600 mt-1.5">
-            <AppIcon name="phone" /> Kod o'quvchining Telegramiga yuborildi — kodni so'rab, shu yerga
-            kiriting.
-          </p>
-          <div v-if="verify.error" class="mt-2 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200">
-            <p class="text-xs text-amber-700">{{ verify.error }}</p>
-            <a v-if="verify.notLinked" :href="`https://t.me/${BOT_USERNAME}`" target="_blank" rel="noopener"
-              class="text-xs text-sky-600 hover:underline font-medium mt-1 inline-block">
-              @{{ BOT_USERNAME }} ni ochish
-              <AppIcon name="arrow-right" />
-            </a>
-          </div>
-          <p v-else-if="detectedRole === 'student' && !verify.codeSent && !phoneVerified"
-            class="text-xs text-gray-400 mt-1.5">
-            O'quvchi avval botga /start bosib raqamini yuborishi kerak, keyin
-            "Kod yuborish"ni bosing.
-          </p>
+          <input type="tel" v-model="addForm.phone" placeholder="+998 90 000 00 00"
+            :class="inputClass('phone')" />
         </div>
 
         <div>
