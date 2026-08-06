@@ -13,6 +13,7 @@ import ReceiptSettings from "./ReceiptSettings.vue";
 import AppIcon from "@/components/AppIcon.vue";
 import AttendanceBoard from "@/components/AttendanceBoard.vue";
 import PaymentRequests from "@/components/PaymentRequests.vue";
+import CashRegister from "@/components/CashRegister.vue";
 import { authHeaders, can, isSuper } from "@/utils/managerApi";
 import { readCache, writeCache } from "@/utils/cache";
 
@@ -36,6 +37,8 @@ const isSuperUser = isSuper(user);
 // chiqmasligi uchun boshlang'ich tab keyinroq (tablar hisoblangach)
 // tanlanadi
 const activeTab = ref("payments");
+// Kunlik kassa widgeti — to'lov saqlangach jonli yig'indini yangilash uchun
+const cashRegisterRef = ref(null);
 
 // Panel bo'limlari (ikonka nomlari AppIcon.vue dagi ro'yxatdan)
 // Asosiy (eng ko'p ishlatiladigan) tablar — doim ko'rinadi
@@ -363,6 +366,11 @@ watch(activeTab, (tab) => {
   if (tab === "attendance" && !attPayments.value.length) {
     fetchAttPayments();
   }
+  // To'lovlar tabiga qaytganda qayta yuklaymiz — kurs narxi boshqa tabda
+  // o'zgargan bo'lsa yangi narx (amount_due) shu yerda ko'rinsin
+  if (tab === "payments") {
+    fetchPayments();
+  }
 });
 
 // ══════════ PAYMENTS: QIDIRUV + PAGINATION (sekinlik/oq ekran fix) ══════════
@@ -671,7 +679,7 @@ async function togglePaid(payment) {
   const shouldBePaid = !payment.is_paid;
   const res = await fetch(`${API}/payments/confirm/${payment.id}/`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({
       is_paid: shouldBePaid,
       is_checked: shouldBePaid,
@@ -689,7 +697,7 @@ async function togglePaid(payment) {
 async function updateAmount(payment) {
   await fetch(`${API}/payments/${payment.id}/update/`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({
       amount_due: payment.amount_due ?? paymentAmountDue(payment),
     }),
@@ -976,7 +984,7 @@ async function savePaymentRow(payment) {
   try {
     const res = await fetch(`${API}/payments/confirm/${payment.id}/`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         is_paid: shouldBePaid,
         is_checked: shouldBePaid,
@@ -1010,7 +1018,7 @@ async function savePaymentRow(payment) {
     try {
       const fallbackRes = await fetch(`${API}/payments/update/${payment.id}/`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           amount_due: payment.amount_due ?? paymentAmountDue(payment),
           paid_amount: payment.paid_amount,
@@ -1029,6 +1037,9 @@ async function savePaymentRow(payment) {
     } catch (fallbackError) {
       console.error("To'lovni saqlashda xatolik:", fallbackError);
     }
+  } finally {
+    // Kunlik kassa yig'indisini yangilaymiz (to'lov summasi o'zgargan bo'lishi mumkin)
+    cashRegisterRef.value?.reload();
   }
 }
 
@@ -1288,6 +1299,9 @@ const inputClass = (field) => [
 
     <!-- ══════════ TO'LOVLAR ══════════ -->
     <div v-if="activeTab === 'payments'">
+      <!-- Kunlik kassa (kassir) — supermenejer o'chirsa ko'rinmaydi -->
+      <CashRegister ref="cashRegisterRef" />
+
       <div class="flex flex-wrap gap-3 mb-5">
         <div>
           <label class="block text-xs text-gray-400 mb-1">Oy</label>
