@@ -1,19 +1,32 @@
 <script setup>
 /**
- * Kunlik kassa (kassir) — bugungi ochiq smenaga tushgan pulni ko'rsatadi
- * va "Topshirish" tugmasi bilan fizik sanoqni kiritib smenani yopadi.
+ * Kunlik kassa (kassir).
+ *
+ * Ikki qavat:
+ *   1. Bugungi smena — tushgan pul va "Topshirish" (fizik sanoq).
+ *   2. Oylik yig'im — qancha yig'ilishi kerak, qancha yig'ilgan, qancha
+ *      qolgan. Ilgari faqat bugungi summa ko'rinardi: kassir oy oxirida
+ *      qancha qarz qolganini panelda umuman ko'rmasdi.
  *
  * Kunlik kassa supermenejer tomonidan o'chirilgan bo'lsa yoki kassirda
  * `cash.view` vakolati bo'lmasa — hech narsa ko'rsatmaydi.
  */
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import AppIcon from "@/components/AppIcon.vue";
 import { API, authHeaders, can } from "@/utils/managerApi";
+
+const props = defineProps({
+  // Oylik yig'im qaysi oy uchun ko'rsatilsin. Bo'sh bo'lsa — joriy oy.
+  // To'lovlar jadvali bilan bir oy turishi kerak, aks holda pastda iyul,
+  // yuqorida avgust raqamlari turib qolardi.
+  month: { type: String, default: "" },
+});
 
 const loading = ref(true);
 const enabled = ref(false);
 const requireCounted = ref(true);
 const session = ref(null);
+const plan = ref(null);
 
 const showModal = ref(false);
 const counted = ref(null);
@@ -25,12 +38,27 @@ const toast = ref({ show: false, message: "", type: "success" });
 const jsonHeaders = () => authHeaders({ "Content-Type": "application/json" });
 const fmt = (n) => Number(n || 0).toLocaleString("uz-UZ") + " so'm";
 
+const MONTHS = [
+  "Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun",
+  "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr",
+];
+const monthLabel = computed(() => {
+  const m = plan.value?.month;
+  if (!m) return "";
+  return MONTHS[Number(m.slice(5, 7)) - 1] || m;
+});
+
 const expected = computed(() => session.value?.expected_total ?? 0);
 const difference = computed(() => {
   const c = Number(counted.value);
   if (counted.value === null || counted.value === "" || isNaN(c)) return null;
   return c - expected.value;
 });
+
+// Progress chizig'i 100% dan oshmasin (ortiqcha to'lovlarda bo'lishi mumkin)
+const percent = computed(() =>
+  Math.min(100, Math.max(0, Number(plan.value?.collected_percent) || 0)),
+);
 
 function showToast(message, type = "success") {
   toast.value = { show: true, message, type };
@@ -45,12 +73,17 @@ async function load() {
   }
   loading.value = true;
   try {
-    const res = await fetch(`${API}/cash/current/`, { headers: authHeaders() });
+    const q = props.month ? `?month=${props.month}` : "";
+    const res = await fetch(`${API}/cash/current/${q}`, { headers: authHeaders() });
     if (!res.ok) throw new Error();
     const data = await res.json();
     enabled.value = !!data.enabled;
     requireCounted.value = data.require_counted !== false;
     session.value = data.session || null;
+    plan.value = data.plan || null;
+    // Kun davomida yangi to'lov tushsa smena qayta ochiladi — eski
+    // "topshirildi" xulosasi ekranda qolib ketmasin
+    if (session.value) justClosed.value = null;
   } catch {
     enabled.value = false;
   } finally {
@@ -97,12 +130,14 @@ async function submitClose() {
     closing.value = false;
   }
 }
+watch(() => props.month, load);
 onMounted(load);
 </script>
 
 <template>
   <!-- Kassa o'chirilgan yoki vakolat yo'q — umuman ko'rinmaydi -->
-  <div v-if="!loading && enabled" class="mb-5">
+  <div v-if="!loading && enabled" class="mb-5 space-y-3">
+    <!-- ══════════ BUGUNGI SMENA ══════════ -->
     <!-- Ochiq smena bor -->
     <div v-if="session"
       class="bg-white rounded-2xl border border-white/20 shadow-sm p-5 relative overflow-hidden">
@@ -143,11 +178,11 @@ onMounted(load);
         <p class="text-sm font-semibold text-slate-700">Kassa topshirildi</p>
       </div>
       <div class="grid grid-cols-3 gap-3">
-        <div class="bg-slate-50 rounded-xl p-3 text-center">
+        <div class="bg-slate-100 rounded-xl p-3 text-center">
           <p class="text-sm font-bold text-slate-700 tabular-nums">{{ fmt(justClosed.expected_total) }}</p>
           <p class="text-[11px] text-slate-400 mt-0.5">Tizim hisobi</p>
         </div>
-        <div class="bg-slate-50 rounded-xl p-3 text-center">
+        <div class="bg-slate-100 rounded-xl p-3 text-center">
           <p class="text-sm font-bold text-slate-700 tabular-nums">{{ fmt(justClosed.counted_total) }}</p>
           <p class="text-[11px] text-slate-400 mt-0.5">Sanalgan</p>
         </div>
@@ -173,6 +208,54 @@ onMounted(load);
       <p class="text-sm text-slate-400">Kunlik kassa yoqilgan — birinchi to'lovda avtomatik ochiladi.</p>
     </div>
 
+    <!-- ══════════ OYLIK YIG'IM ══════════ -->
+    <!-- Jami qancha yig'ilishi kerak va shundan qanchasi yig'ilgan -->
+    <div v-if="plan" class="bg-white rounded-2xl border border-white/20 shadow-sm p-5">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">
+          {{ monthLabel }} — oylik yig'im
+        </p>
+        <p class="text-xs text-slate-400 tabular-nums">
+          <span class="font-semibold text-slate-600">{{ plan.paid_count }}</span>
+          / {{ plan.total_count }} o'quvchi to'lagan
+        </p>
+      </div>
+
+      <!-- Progress: yig'ilgan / yig'ilishi kerak -->
+      <div class="h-2 w-full rounded-full bg-gray-200 overflow-hidden mb-3">
+        <div class="h-full rounded-full bg-emerald-500 transition-all duration-500"
+          :style="{ width: percent + '%' }"></div>
+      </div>
+
+      <div class="grid grid-cols-3 gap-3">
+        <div>
+          <p class="text-[11px] text-slate-400 mb-0.5">Yig'ilgan</p>
+          <p class="text-sm sm:text-base font-bold text-emerald-600 tabular-nums break-words">
+            {{ fmt(plan.collected_total) }}
+          </p>
+        </div>
+        <div>
+          <p class="text-[11px] text-slate-400 mb-0.5">Qolgan</p>
+          <p class="text-sm sm:text-base font-bold tabular-nums break-words"
+            :class="plan.remaining_total > 0 ? 'text-rose-600' : 'text-emerald-600'">
+            {{ fmt(plan.remaining_total) }}
+          </p>
+        </div>
+        <div>
+          <p class="text-[11px] text-slate-400 mb-0.5">Yig'ilishi kerak</p>
+          <p class="text-sm sm:text-base font-bold text-slate-800 tabular-nums break-words">
+            {{ fmt(plan.due_total) }}
+          </p>
+        </div>
+      </div>
+
+      <p class="text-[11px] text-slate-400 mt-3 pt-3 border-t border-slate-100">
+        Kassaga shu oy tushgan:
+        <span class="font-semibold text-slate-600 tabular-nums">{{ fmt(plan.cash_month_total) }}</span>
+        <span class="text-slate-300"> — boshqa oylar uchun to'lovlar ham shunga kiradi</span>
+      </p>
+    </div>
+
     <!-- Topshirish modali -->
     <transition name="fade">
       <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm"
@@ -188,7 +271,7 @@ onMounted(load);
             </div>
           </div>
 
-          <div class="bg-slate-50 rounded-xl p-4 mb-4 flex items-center justify-between">
+          <div class="bg-slate-100 rounded-xl p-4 mb-4 flex items-center justify-between">
             <span class="text-sm text-slate-500">Tizim hisobi</span>
             <span class="text-lg font-bold text-slate-800 tabular-nums">{{ fmt(expected) }}</span>
           </div>

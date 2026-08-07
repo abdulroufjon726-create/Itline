@@ -14,17 +14,9 @@ const API = "https://itline-django-9s85.onrender.com/api";
 const user = JSON.parse(localStorage.getItem("user") || "{}");
 if (!user?.id) router.push("/login");
 
-const QUICK_ACTIONS = [
-  { reason: "exam_pass", label: "Imtihon", amount: +80, icon: "check-circle" },
-  { reason: "homework_done", label: "Vazifa to'liq", amount: +20, icon: "course" },
-  {
-    reason: "homework_partial",
-    label: "Vazifa chala",
-    amount: +10,
-    icon: "course",
-  },
-  { reason: "homework_missed", label: "Vazifa yo'q", amount: -20, icon: "x-circle" },
-];
+// Coin berish shu ro'yxatdan olib tashlandi — ustoz uni davomat
+// belgilayotgan joyning o'zida beradi (/attendance → AttendanceBoard).
+// Bu yerda faqat balans ko'rsatiladi.
 
 const AVATAR_COLORS = [
   { backgroundColor: "#EEEDFE", color: "#3C3489" },
@@ -58,11 +50,6 @@ const groups = ref([]);
 const myGroup = ref(null);
 const activeTab = ref("students");
 const selectedGroupId = ref(null);
-const expandedStudentId = ref(null);
-const givingCoin = ref({});
-const manualAmount = ref({});
-const bonusUsed = ref({});
-const actionFeedback = ref({});
 const loadingStudents = ref(true);
 const loadingPayments = ref(true);
 
@@ -166,24 +153,6 @@ async function fetchGroups() {
   }
 }
 
-async function fetchBonusStatuses() {
-  if (!user.is_admin || !students.value.length) return;
-  const month = new Date().toISOString().slice(0, 7);
-  await Promise.all(
-    students.value.map(async (s) => {
-      try {
-        const res = await fetch(`${API}/coins/transactions/${s.id}/`);
-        const txns = await res.json();
-        bonusUsed.value[s.id] = txns.some(
-          (t) => t.reason === "manual" && t.created_at?.slice(0, 7) === month,
-        );
-      } catch {
-        bonusUsed.value[s.id] = false;
-      }
-    }),
-  );
-}
-
 onMounted(async () => {
   // Fetch students and groups, then ensure groups have `students` arrays
   await Promise.all([fetchStudents(), fetchPayments(), fetchGroups()]);
@@ -196,7 +165,6 @@ onMounted(async () => {
         : students.value.filter((s) => s.group === g.id || s.group_id === g.id),
     }));
   }
-  fetchBonusStatuses();
   fetchAttendance();
   if (!user.is_admin) fetchWallet();
 });
@@ -213,79 +181,6 @@ function togglePayment(id) {
   const s = new Set(openPayments.value);
   s.has(id) ? s.delete(id) : s.add(id);
   openPayments.value = s;
-}
-
-// ─── Coin actions ─────────────────────────────────────────────
-function togglePanel(id) {
-  expandedStudentId.value = expandedStudentId.value === id ? null : id;
-}
-
-function showFeedback(id, type, text) {
-  actionFeedback.value[id] = { type, text };
-  setTimeout(() => {
-    delete actionFeedback.value[id];
-  }, 3000);
-}
-
-async function giveCoin(studentId, reason) {
-  if (givingCoin.value[studentId]) return;
-  givingCoin.value[studentId] = true;
-  try {
-    const res = await fetch(`${API}/coins/give/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        student_id: studentId,
-        teacher_id: user.teacher_id,
-        reason,
-      }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      showFeedback(studentId, "error", data.error || "Xatolik");
-      return;
-    }
-    const s = students.value.find((st) => st.id === studentId);
-    if (s) s.coin_balance = data.coin_balance;
-    showFeedback(studentId, "success", "Coin berildi");
-  } catch {
-    showFeedback(studentId, "error", "Server xatoligi");
-  } finally {
-    givingCoin.value[studentId] = false;
-  }
-}
-
-async function giveManualBonus(studentId) {
-  if (bonusUsed.value[studentId] || givingCoin.value[studentId]) return;
-  const amount = manualAmount.value[studentId];
-  if (!amount) return;
-  givingCoin.value[studentId] = true;
-  try {
-    const res = await fetch(`${API}/coins/give/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        student_id: studentId,
-        teacher_id: user.teacher_id,
-        reason: "manual",
-        amount,
-      }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      showFeedback(studentId, "error", data.error || "Xatolik");
-      return;
-    }
-    const s = students.value.find((st) => st.id === studentId);
-    if (s) s.coin_balance = data.coin_balance;
-    bonusUsed.value[studentId] = true;
-    manualAmount.value[studentId] = null;
-    showFeedback(studentId, "success", "Oylik bonus berildi");
-  } catch {
-    showFeedback(studentId, "error", "Server xatoligi");
-  } finally {
-    givingCoin.value[studentId] = false;
-  }
 }
 
 // ─── Computed ─────────────────────────────────────────────────
@@ -335,7 +230,6 @@ function getStudentGroup(studentId) {
 // ─── Helpers ──────────────────────────────────────────────────
 const initials = (s) =>
   ((s.name?.[0] || "") + (s.surname?.[0] || "")).toUpperCase();
-const formatSigned = (v) => (v > 0 ? `+${v}` : `${v}`);
 const formatMoney = (v) => Number(v || 0).toLocaleString("uz-UZ") + " so'm";
 const formatMonth = (m) => {
   if (!m) return "";
@@ -529,74 +423,13 @@ const formatDate = (date) => {
               <span class="text-xs px-2.5 py-1 rounded-full bg-yellow-50 text-yellow-700 font-medium whitespace-nowrap">
                 <AppIcon name="coin" /> {{ student.coin_balance || 0 }}
               </span>
-              <button v-if="user.is_admin" @click="togglePanel(student.id)"
+              <!-- Coin berish davomat bo'limiga ko'chdi — ustoz dars
+                   belgilab turib o'sha yerdan beradi -->
+              <RouterLink v-if="user.is_admin" to="/attendance" title="Davomat — coin shu yerdan beriladi"
                 class="cursor-pointer w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition text-sm">
-                <AppIcon :name="expandedStudentId === student.id ? 'x' : 'settings'" />
-              </button>
+                <AppIcon name="attendance" />
+              </RouterLink>
             </div>
-          </div>
-
-          <div v-if="user.is_admin && expandedStudentId === student.id" class="border-t  px-4 py-4">
-            <p class="text-xs font-medium text-gray-500 mb-3">
-              {{ student.name }} {{ student.surname }} uchun coin bering
-            </p>
-
-            <!-- Quick actions — 2x2 grid on mobile, 4 columns on sm+ -->
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <button v-for="action in QUICK_ACTIONS" :key="action.reason" @click="giveCoin(student.id, action.reason)"
-                :disabled="givingCoin[student.id]" :class="[
-                  'flex flex-col cursor-pointer items-center justify-center gap-1 rounded-xl border px-2 py-3 text-xs font-medium transition disabled:opacity-40',
-                  action.amount > 0
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100'
-                    : 'bg-rose-50 text-rose-600 border-rose-100 hover:bg-rose-100',
-                ]">
-                <span class="text-base leading-none">
-                  <AppIcon :name="action.icon" />
-                </span>
-                <span class="leading-tight text-center">{{
-                  action.label
-                }}</span>
-                <span class="font-bold tabular-nums">{{
-                  formatSigned(action.amount)
-                }}</span>
-              </button>
-            </div>
-
-            <!-- Oylik bonus -->
-            <div class="mt-3 pt-3 border-t border-gray-100">
-              <p class="text-xs text-gray-500 mb-2">
-                <AppIcon name="gift" /> Oylik erkin bonus
-                <span class="text-gray-400">(1 marta)</span>
-              </p>
-              <div class="flex items-center gap-2 flex-wrap">
-                <input v-model.number="manualAmount[student.id]" type="number" placeholder="Miqdor"
-                  :disabled="bonusUsed[student.id] || givingCoin[student.id]"
-                  class="w-24 border border-gray-200 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-gray-400 disabled:bg-gray-50 disabled:text-gray-300 transition" />
-                <button @click="giveManualBonus(student.id)" :disabled="bonusUsed[student.id] ||
-                  !manualAmount[student.id] ||
-                  givingCoin[student.id]
-                  " :class="[
-                    'px-3 py-1.5 rounded-lg text-xs font-medium border transition cursor-pointer',
-                    bonusUsed[student.id]
-                      ? 'border-gray-200 text-gray-300 cursor-not-allowed'
-                      : 'border-gray-800 text-gray-800 hover:bg-gray-800 hover:text-white',
-                  ]">
-                  {{
-                    bonusUsed[student.id] ? "Bu oy ishlatilgan" : "Bonus berish"
-                  }}
-                </button>
-              </div>
-            </div>
-
-            <!-- Feedback -->
-            <p v-if="actionFeedback[student.id]" :class="[
-              'text-xs mt-2.5 font-medium',
-              actionFeedback[student.id].type === 'success'
-                ? 'text-emerald-600'
-                : 'text-rose-600',
-            ]">
-              {{ actionFeedback[student.id].text }}
-            </p>
           </div>
         </div>
       </div>

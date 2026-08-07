@@ -103,7 +103,7 @@
           {{ formatMonth(selectedMonth) }} — studentlar to'lov holati
         </h2>
         <div class="grid grid-cols-2 lg:grid-cols-5 gap-3">
-          <div class="bg-slate-50 rounded-xl p-3.5 text-center">
+          <div class="bg-slate-100 rounded-xl p-3.5 text-center">
             <p class="text-lg sm:text-xl font-bold text-slate-800 tabular-nums">
               {{ summary.total_students }}
             </p>
@@ -329,7 +329,10 @@
                 </div>
               </td>
               <td class="px-5 py-3.5 text-sm font-bold tabular-nums text-slate-700">
-                {{ fmt(p.amount_due) }}
+                {{ fmt(netDueOf(p)) }}
+                <span v-if="p.discount > 0" class="block text-[11px] font-normal text-slate-400 line-through">
+                  {{ fmt(p.amount_due) }}
+                </span>
               </td>
               <td class="px-5 py-3.5 text-sm font-bold tabular-nums" :class="paidAmountOf(p) > 0 ? 'text-emerald-600' : 'text-slate-300'
                 ">
@@ -545,7 +548,12 @@ const monthPayments = computed(() => payments.value);
 const monthExpenses = computed(() => expenses.value);
 
 const paidAmountOf = (p) => Number(p.paid_amount ?? 0) || 0;
-const remainingOf = (p) => (Number(p.amount_due) || 0) - paidAmountOf(p);
+// Chegirmadan keyingi sof summa — markaz qo'liga tushadigan pul shu.
+// Chegirma ayrilmasa chegirma berilgan o'quvchi to'liq to'lagan bo'lsa ham
+// "qarzdor" bo'lib ko'rinardi.
+const netDueOf = (p) =>
+  Math.max(0, (Number(p.amount_due) || 0) - (Number(p.discount) || 0));
+const remainingOf = (p) => netDueOf(p) - paidAmountOf(p);
 
 // ✅ TUZATILGAN: Remaining qiymatini to'g'ri hisoblash
 const calculatedRemaining = computed(() => {

@@ -76,6 +76,50 @@
         </div>
       </div>
 
+      <!-- ══════════ OYLIK YIG'IM ══════════ -->
+      <!-- Smenalar "kassaga qancha tushdi" ni ko'rsatadi; bu blok esa
+           "qancha tushishi kerak edi" ni — ikkalasi yonma-yon turmasa
+           oy oxirida qancha qarz qolgani ko'rinmasdi. -->
+      <div v-if="plan" class="bg-white rounded-2xl border border-white/20 shadow-sm p-5 mb-5">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <h2 class="text-sm font-semibold text-slate-700 flex items-center gap-2">
+            <span class="w-1 h-4 rounded-full bg-emerald-400"></span>
+            Oylik yig'im
+          </h2>
+          <p class="text-xs text-slate-400 tabular-nums">
+            <span class="font-semibold text-slate-600">{{ plan.paid_count }}</span>
+            / {{ plan.total_count }} o'quvchi to'lagan
+          </p>
+        </div>
+
+        <div class="h-2 w-full rounded-full bg-gray-200 overflow-hidden mb-4">
+          <div class="h-full rounded-full bg-emerald-500 transition-all duration-500"
+            :style="{ width: percent + '%' }"></div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-4">
+          <div>
+            <p class="text-[11px] text-slate-400 uppercase tracking-wider mb-1">Yig'ilgan</p>
+            <p class="text-base sm:text-lg font-bold text-emerald-600 tabular-nums break-words">
+              {{ fmt(plan.collected_total) }}
+            </p>
+          </div>
+          <div>
+            <p class="text-[11px] text-slate-400 uppercase tracking-wider mb-1">Qolgan</p>
+            <p class="text-base sm:text-lg font-bold tabular-nums break-words"
+              :class="plan.remaining_total > 0 ? 'text-rose-600' : 'text-emerald-600'">
+              {{ fmt(plan.remaining_total) }}
+            </p>
+          </div>
+          <div>
+            <p class="text-[11px] text-slate-400 uppercase tracking-wider mb-1">Yig'ilishi kerak</p>
+            <p class="text-base sm:text-lg font-bold text-slate-800 tabular-nums break-words">
+              {{ fmt(plan.due_total) }}
+            </p>
+          </div>
+        </div>
+      </div>
+
       <!-- ══════════ SMENALAR ══════════ -->
       <div class="bg-white rounded-2xl border border-white/20 shadow-sm overflow-x-auto">
         <table class="w-full min-w-[640px]">
@@ -138,7 +182,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import AppIcon from "@/components/AppIcon.vue";
 import SuperLayout from "@/components/SuperLayout.vue";
 import { API, authHeaders } from "@/utils/managerApi";
@@ -156,8 +200,14 @@ const summary = ref({
   closed_count: 0,
   open_count: 0,
 });
+const plan = ref(null);
 const settings = ref({ enabled: true, require_counted: true, lock_after_close: true });
 const toast = ref({ show: false, message: "", type: "success" });
+
+// Progress chizig'i 100% dan oshmasin (ortiqcha to'lovlarda bo'lishi mumkin)
+const percent = computed(() =>
+  Math.min(100, Math.max(0, Number(plan.value?.collected_percent) || 0)),
+);
 
 const fmt = (n) => Number(n || 0).toLocaleString("uz-UZ") + " so'm";
 const initials = (name) =>
@@ -190,8 +240,10 @@ async function loadSessions() {
     const data = await res.json();
     sessions.value = data.sessions || [];
     summary.value = data.summary || summary.value;
+    plan.value = data.plan || null;
   } catch {
     sessions.value = [];
+    plan.value = null;
     showToast("Smenalarni yuklashda xatolik", "error");
   }
 }
