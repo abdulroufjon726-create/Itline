@@ -113,10 +113,6 @@
       PATCH  /api/students/update/<id>/      -> { group: id }   -- agar sizning backendingizda boshqa metod bo'lsa (masalan PUT),
                                                   shu yerdagi savePaymentRow/addSelectedStudents ichidagi methodni moslang
 
-    To'lovlar:
-      GET    /api/payments/                  -> barcha to'lovlar (oy bo'yicha)
-      PATCH  /api/payments/update/<id>/      -> { paid_amount }
-
   MUHIM: GroupSerializer sizda faqat students_count qaytaradi, students ro'yxatini emas.
   Shu sabab guruh ichidagi o'quvchilar ro'yxati /api/students/ dan olinib, group_id bo'yicha
   frontendda filtrlanadi (backend GroupSerializer'ga nested "students" qo'shsangiz, buni ham
@@ -131,11 +127,9 @@ const courses = ref([]);
 const groups = ref([]);
 const teachers = ref([]);
 const students = ref([]);
-const payments = ref([]);
 
 const loadingCourses = ref(false);
 const loadingGroups = ref(false);
-const selectedMonth = ref(new Date().toISOString().slice(0, 7));
 const selectedTeacher = ref("");
 
 const showCreateCourseModal = ref(false);
@@ -174,36 +168,6 @@ const filteredGroups = computed(() => {
 // bitta guruhga tegishli o'quvchilar - Student.group FK orqali frontendda filtrlanadi
 function groupStudentsList(group) {
     return students.value.filter((s) => s.group === group.id || s.group_id === group.id);
-}
-
-const activeGroupStudents = computed(() => {
-    if (!activeGroup.value) return [];
-    return groupStudentsList(activeGroup.value).map((s) => {
-        const payment = payments.value.find(
-            (p) => (p.student === s.id || p.student_id === s.id) && (p.month || "").startsWith(selectedMonth.value)
-        );
-        return {
-            ...s,
-            paid_amount: payment ? Number(payment.paid_amount) || 0 : 0,
-            payment_id: payment?.id,
-        };
-    });
-});
-
-function studentRemaining(student) {
-    const total = Number(activeGroup.value?.monthly_fee) || 0;
-    const paid = Number(student.paid_amount) || 0;
-    return total - paid;
-}
-
-function groupLedger(group) {
-    const list = groupStudentsList(group);
-    const monthPayments = payments.value.filter(
-        (p) => list.some((s) => s.id === p.student || s.id === p.student_id) && (p.month || "").startsWith(selectedMonth.value)
-    );
-    const total = (Number(group.monthly_fee) || 0) * list.length;
-    const paid = monthPayments.reduce((sum, p) => sum + (Number(p.paid_amount) || 0), 0);
-    return { total, paid, remaining: total - paid };
 }
 
 // stats removed — page focuses on courses only
@@ -312,15 +276,6 @@ async function loadStudents() {
     }
 }
 
-async function loadPayments() {
-    try {
-        const { data } = await axios.get(`${API_BASE}/payments/?month=${selectedMonth.value}`);
-        payments.value = data || [];
-    } catch (e) {
-        console.error("To'lovlarni yuklashda xatolik:", e);
-    }
-}
-
 function openCreateGroupModal() {
     createGroupForm.value = {
         name: "",
@@ -360,21 +315,6 @@ async function removeGroup(group) {
 function openGroupModal(group) {
     activeGroup.value = group;
     showGroupModal.value = true;
-}
-
-async function savePayment(student) {
-    try {
-        if (student.payment_id) {
-            await axios.patch(`${API_BASE}/payments/update/${student.payment_id}/`, {
-                paid_amount: student.paid_amount,
-            });
-        } else {
-            console.warn("Bu o'quvchi uchun joriy oyda to'lov yozuvi topilmadi - avval payments/generate/ chaqirilishi kerak");
-        }
-        await loadPayments();
-    } catch (e) {
-        console.error("To'lovni saqlashda xatolik:", e);
-    }
 }
 
 function openAddStudentModal(group) {
@@ -455,6 +395,5 @@ onMounted(async () => {
     await loadStudents();
     await loadGroups();
     await loadTeachers();
-    await loadPayments();
 });
 </script>

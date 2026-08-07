@@ -704,8 +704,11 @@ async function updateAmount(payment) {
   });
 }
 
+// Jami = CHEGIRMADAN KEYIN yig'ilishi kerak bo'lgan pul. Ilgari bu yerda
+// chegirmasiz summa turardi: guruh sarlavhalari va "Qolgan" sof summadan
+// hisoblangani uchun "Jami − To'langan ≠ Qolgan" bo'lib chiqardi.
 const totalAmount = computed(() =>
-  payments.value.reduce((a, b) => a + Number(paymentAmountDue(b) || 0), 0),
+  payments.value.reduce((a, b) => a + paymentNetDue(b), 0),
 );
 // ══════════ TUZATILDI: paidAmount endi bitta manbadan (paymentPaidAmount) hisoblanadi ══════════
 const paidAmount = computed(() =>
@@ -717,10 +720,7 @@ const unpaidAmount = computed(() =>
 );
 
 const historyTotalAmount = computed(() =>
-  historyPayments.value.reduce(
-    (a, b) => a + Number(paymentAmountDue(b) || 0),
-    0,
-  ),
+  historyPayments.value.reduce((a, b) => a + paymentNetDue(b), 0),
 );
 const historyPaidAmount = computed(() =>
   historyPayments.value.reduce((a, b) => a + paymentPaidAmount(b), 0),
@@ -977,8 +977,134 @@ function sanitizePaidAmount(payment) {
     payment.paid_amount = 0;
   }
 }
+
+// ══════════ BO'LIB TO'LASH ══════════
+// "To'langan" ustuni endi jamini ko'rsatadi, lekin unga qo'lda yozilmaydi.
+// Kassir "+ To'lov" orqali SHU SAFAR qo'lga tushgan summani kiritadi —
+// jamini tizim qo'shadi. Ilgari maydonga jami yozilishi kerak edi:
+// 400 000 lik oyga kecha 200 000 olib, bugun yana 200 000 olgan kassir
+// odatdagidek "200 000" yozsa, farq 0 chiqib bugungi kassa 200 000 kam
+// ko'rsatardi. Endi bunday xato bo'lishi mumkin emas.
+
+const payOpenId = ref(null); // qaysi qatorda to'lov kiritilyapti
+const payAmount = ref(null); // shu safar tushgan summa
+const paySaving = ref(false);
+const payError = ref("");
+
+// Jamini to'g'ridan-to'g'ri tahrirlash — faqat tuzatish uchun
+const editTotalId = ref(null);
+
+// To'lov tarixi (qaysi kuni qancha tushgan)
+const payHistoryId = ref(null);
+const payHistoryRows = ref([]);
+const payHistoryLoading = ref(false);
+
+function openInstallment(payment) {
+  payOpenId.value = payOpenId.value === payment.id ? null : payment.id;
+  payAmount.value = null;
+  payError.value = "";
+  editTotalId.value = null;
+}
+
+// Qolgan summani tugma bilan to'ldirish — eng ko'p uchraydigan holat
+function fillRemaining(payment) {
+  payAmount.value = Math.max(0, remainingAmount(payment)) || null;
+}
+
+async function submitInstallment(payment) {
+  const amount = Number(payAmount.value);
+  if (!amount || amount <= 0) {
+    payError.value = "Summani kiriting";
+    return;
+  }
+  paySaving.value = true;
+  payError.value = "";
+  try {
+    const res = await fetch(`${API}/payments/${payment.id}/pay/`, {
+      method: "POST",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ amount }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      payError.value = data.error || "Saqlanmadi";
+      return;
+    }
+    payment.paid_amount = data.paid_amount;
+    payment.is_paid = data.is_paid;
+    payment.is_checked = data.is_paid;
+    payment.paid_today = (Number(payment.paid_today) || 0) + amount;
+    if (data.wallet_balance !== undefined) {
+      syncWallet(payment.student_id, data.wallet_balance, data.wallet_debt);
+    }
+    if (Number(data.coin_awarded) > 0) {
+      showCoinToast(
+        `${payment.student_name} — vaqtida to'lov uchun +${data.coin_awarded} coin 🎉`,
+      );
+    }
+    payOpenId.value = null;
+    payAmount.value = null;
+  } catch (e) {
+    console.error("submitInstallment:", e);
+    payError.value = "Server bilan aloqa yo'q";
+  } finally {
+    paySaving.value = false;
+    // Kunlik kassa yig'indisi darhol yangilansin
+    cashRegisterRef.value?.reload();
+  }
+}
+
+// Jamini tuzatish — kamayish ataylab qilinayotganini tasdiqlatamiz
+async function saveTotalCorrection(payment) {
+  sanitizePaidAmount(payment);
+  const before = Number(payment._paid_before ?? 0);
+  if (Number(payment.paid_amount) < before) {
+    const ok = window.confirm(
+      `To'langan jami ${money(before)} dan ${money(payment.paid_amount)} ga ` +
+      "kamayadi. Farq bugungi kassadan yechiladi. Davom etamizmi?",
+    );
+    if (!ok) {
+      payment.paid_amount = before;
+      return;
+    }
+  }
+  editTotalId.value = null;
+  await savePaymentRow(payment, { allowDecrease: true });
+}
+
+function startTotalCorrection(payment) {
+  editTotalId.value = editTotalId.value === payment.id ? null : payment.id;
+  payment._paid_before = payment.paid_amount;
+  payOpenId.value = null;
+}
+
+async function openHistory(payment) {
+  if (payHistoryId.value === payment.id) {
+    payHistoryId.value = null;
+    return;
+  }
+  payHistoryId.value = payment.id;
+  payHistoryRows.value = [];
+  payHistoryLoading.value = true;
+  try {
+    const res = await fetch(`${API}/payments/${payment.id}/history/`, {
+      headers: authHeaders(),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) payHistoryRows.value = data.installments || [];
+  } catch (e) {
+    console.error("openHistory:", e);
+  } finally {
+    payHistoryLoading.value = false;
+  }
+}
+
+const shortDate = (iso) => (iso ? `${iso.slice(8, 10)}.${iso.slice(5, 7)}` : "—");
 // ══════════ TUZATILDI: status FAQAT checkbox (is_checked) holatiga qarab belgilanadi ══════════
-async function savePaymentRow(payment) {
+// `allowDecrease` — jamini kamaytirish ataylab qilinayotganini bildiradi.
+// Backend usiz kamayishni rad etadi: bo'lib to'lashda "bugun tushgan"ni
+// jami o'rniga yozib yuborish eng ko'p uchraydigan xato edi.
+async function savePaymentRow(payment, { allowDecrease = false } = {}) {
   const shouldBePaid = Boolean(payment.is_checked);
 
   try {
@@ -991,10 +1117,17 @@ async function savePaymentRow(payment) {
         amount_due: payment.amount_due ?? paymentAmountDue(payment),
         paid_amount: payment.paid_amount ?? 0,
         discount: Number(payment.discount) || 0,
+        allow_decrease: allowDecrease,
       }),
     });
 
     const data = await res.json().catch(() => ({}));
+    // Kamayish to'sildi — serverdagi haqiqiy jamini qaytarib qo'yamiz
+    if (!res.ok && data.code === "paid_amount_decrease") {
+      payment.paid_amount = data.paid_amount;
+      showCoinToast(data.error);
+      return;
+    }
     payment.is_paid = data.is_paid ?? shouldBePaid;
     payment.is_checked = data.is_checked ?? shouldBePaid;
     payment.paid_amount = data.paid_amount ?? payment.paid_amount;
@@ -1025,6 +1158,7 @@ async function savePaymentRow(payment) {
           discount: Number(payment.discount) || 0,
           is_checked: shouldBePaid,
           is_paid: shouldBePaid,
+          allow_decrease: allowDecrease,
         }),
       });
       const fallbackData = await fallbackRes.json().catch(() => ({}));
@@ -1299,8 +1433,9 @@ const inputClass = (field) => [
 
     <!-- ══════════ TO'LOVLAR ══════════ -->
     <div v-if="activeTab === 'payments'">
-      <!-- Kunlik kassa (kassir) — supermenejer o'chirsa ko'rinmaydi -->
-      <CashRegister ref="cashRegisterRef" />
+      <!-- Kunlik kassa (kassir) — supermenejer o'chirsa ko'rinmaydi.
+           Oylik yig'im pastdagi jadval bilan bir oyni ko'rsatadi. -->
+      <CashRegister ref="cashRegisterRef" :month="selectedMonth" />
 
       <div class="flex flex-wrap gap-3 mb-5">
         <div>
@@ -1410,8 +1545,8 @@ const inputClass = (field) => [
               <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">
                 Muddat
               </th>
-              <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">
-                To'langan
+              <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium" title="Oy boshidan beri to'plangan jami">
+                To'langan (jami)
               </th>
               <th class="text-left px-4 py-3 text-xs text-gray-400 font-medium">
                 Qolgan
@@ -1531,11 +1666,94 @@ const inputClass = (field) => [
                     {{ formatDue(payment) }}
                   </td>
                   <td class="px-4 py-3">
-                    <!-- ✅ TUZATILDI: manfiy son kiritib bo'lmaydi -->
-                    <input type="number" min="0" step="1" v-model.number="payment.paid_amount"
-                      @keydown="blockNegativeKey($event)" @input="sanitizePaidAmount(payment)"
-                      @change="savePaymentRow(payment)" placeholder="0"
-                      class="border border-white/10 rounded-lg px-2 py-1 w-28 text-sm outline-none focus:border-white/10" />
+                    <!-- Jami to'langan — qo'lda yozilmaydi. Bo'lib to'lashda
+                         kassir "+ To'lov" orqali SHU SAFAR tushgan summani
+                         kiritadi, jamini tizim qo'shadi. -->
+                    <div class="flex items-center gap-1.5">
+                      <span class="tabular-nums font-medium">{{ money(payment.paid_amount) }}</span>
+                      <button type="button" @click="openInstallment(payment)"
+                        class="px-2 py-1 rounded-lg border border-emerald-200 text-emerald-600 hover:bg-emerald-50 text-[11px] font-semibold transition shrink-0"
+                        title="Bugun tushgan summani qo'shish">
+                        <AppIcon name="plus" /> To'lov
+                      </button>
+                      <button type="button" @click="openHistory(payment)"
+                        class="px-1.5 py-1 rounded-lg border border-gray-200 text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition shrink-0"
+                        title="To'lov tarixi — qaysi kuni qancha tushgan">
+                        <AppIcon name="receipt" />
+                      </button>
+                      <button v-if="isManager" type="button" @click="startTotalCorrection(payment)"
+                        class="px-1.5 py-1 rounded-lg border border-gray-200 text-gray-400 hover:text-amber-600 hover:bg-amber-50 transition shrink-0"
+                        title="Jamini tuzatish (xato yozilgan bo'lsa)">
+                        <AppIcon name="edit" />
+                      </button>
+                    </div>
+
+                    <p v-if="payment.paid_today" class="text-[11px] text-emerald-600 mt-1 tabular-nums">
+                      Bugun: +{{ money(payment.paid_today) }}
+                    </p>
+
+                    <!-- Shu safar tushgan summa -->
+                    <div v-if="payOpenId === payment.id" class="mt-2 flex flex-wrap items-center gap-1.5">
+                      <input type="number" min="1" step="1000" v-model.number="payAmount"
+                        @keydown="blockNegativeKey($event)" @keyup.enter="submitInstallment(payment)"
+                        placeholder="Bugun tushdi" autofocus
+                        class="border border-emerald-200 rounded-lg px-2 py-1 w-32 text-sm outline-none focus:border-emerald-400" />
+                      <button type="button" @click="fillRemaining(payment)" v-if="remainingAmount(payment) > 0"
+                        class="px-2 py-1 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 text-[11px] transition"
+                        title="Qolgan summani qo'yish">
+                        Qolgan: {{ money(remainingAmount(payment)) }}
+                      </button>
+                      <button type="button" @click="submitInstallment(payment)" :disabled="paySaving"
+                        class="px-2.5 py-1 rounded-lg bg-emerald-600 text-white text-[11px] font-semibold hover:bg-emerald-700 transition disabled:opacity-40">
+                        {{ paySaving ? "..." : "Qabul qilish" }}
+                      </button>
+                      <button type="button" @click="payOpenId = null"
+                        class="px-1.5 py-1 rounded-lg text-gray-400 hover:text-gray-600 transition">
+                        <AppIcon name="x" />
+                      </button>
+                      <p v-if="payError" class="w-full max-w-[260px] whitespace-normal text-[11px] text-rose-500">
+                        {{ payError }}
+                      </p>
+                    </div>
+
+                    <!-- Jamini tuzatish (kamaytirish tasdiqlanadi) -->
+                    <div v-if="editTotalId === payment.id" class="mt-2 flex items-center gap-1.5">
+                      <input type="number" min="0" step="1" v-model.number="payment.paid_amount"
+                        @keydown="blockNegativeKey($event)" @input="sanitizePaidAmount(payment)"
+                        @keyup.enter="saveTotalCorrection(payment)" placeholder="0"
+                        class="border border-amber-200 rounded-lg px-2 py-1 w-28 text-sm outline-none focus:border-amber-400" />
+                      <button type="button" @click="saveTotalCorrection(payment)"
+                        class="px-2.5 py-1 rounded-lg bg-amber-500 text-white text-[11px] font-semibold hover:bg-amber-600 transition">
+                        Tuzatish
+                      </button>
+                      <button type="button" @click="editTotalId = null; payment.paid_amount = payment._paid_before"
+                        class="px-1.5 py-1 rounded-lg text-gray-400 hover:text-gray-600 transition">
+                        <AppIcon name="x" />
+                      </button>
+                    </div>
+
+                    <!-- Tarix: qaysi kuni qancha tushgan -->
+                    <!-- bg-gray-100: tungi rejimda bg-gray-50 shaffof
+                         bo'lib qoladi, ro'yxat fonsiz osilib turardi -->
+                    <div v-if="payHistoryId === payment.id"
+                      class="mt-2 rounded-lg border border-gray-200 bg-gray-100 p-2 text-[11px] min-w-[200px]">
+                      <p v-if="payHistoryLoading" class="text-gray-400">Yuklanmoqda...</p>
+                      <p v-else-if="!payHistoryRows.length" class="text-gray-400">
+                        Kassa jurnalida yozuv yo'q
+                      </p>
+                      <ul v-else class="space-y-0.5">
+                        <li v-for="h in payHistoryRows" :key="h.id" class="flex items-center justify-between gap-3">
+                          <span class="text-gray-500">
+                            {{ shortDate(h.date || h.created_at) }}
+                            <span v-if="h.kind === 'adjust'" class="text-amber-600">· tuzatish</span>
+                          </span>
+                          <span class="tabular-nums font-semibold"
+                            :class="h.amount >= 0 ? 'text-emerald-600' : 'text-rose-500'">
+                            {{ h.amount >= 0 ? "+" : "−" }}{{ money(Math.abs(h.amount)) }}
+                          </span>
+                        </li>
+                      </ul>
+                    </div>
                   </td>
                   <td class="px-4 py-3 font-medium" :class="remainingAmount(payment) > 0
                     ? 'text-red-600'

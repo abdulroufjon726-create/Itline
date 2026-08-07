@@ -1,6 +1,14 @@
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
 import AppIcon from "@/components/AppIcon.vue";
+import CoinQuickGive from "@/components/CoinQuickGive.vue";
+
+// Coin berish ustoz/adminda — dars belgilangan joyning o'zida.
+// Balans esa hammaga ko'rinadi: ustoz o'quvchining coinini shu ro'yxatda
+// ko'rib turishi kerak, coin bermasa ham.
+const user = JSON.parse(localStorage.getItem("user") || "null");
+const canGiveCoins = !!user?.is_admin;
+const teacherId = user?.teacher_id || null;
 
 /**
  * Soddalashtirilgan davomat: guruh tanla → sana (yoki oy) → belgila.
@@ -32,11 +40,13 @@ const monthRows = ref([]);
 const monthCounts = ref({});
 const loading = ref(false);
 const savingId = ref(null);
+// Coin tugmalari miqdori backenddan keladi (qotirib yozilmagan)
+const coinActions = ref(null);
 
 const STATUSES = [
-  { key: "present", label: "Keldi", dot: "bg-emerald-500", active: "bg-emerald-500 text-white" },
-  { key: "late", label: "Kech", dot: "bg-amber-400", active: "bg-amber-400 text-white" },
-  { key: "absent", label: "Kelmadi", dot: "bg-rose-500", active: "bg-rose-500 text-white" },
+  { key: "present", label: "Keldi", active: "bg-emerald-500 text-white" },
+  { key: "late", label: "Kech", active: "bg-amber-400 text-white" },
+  { key: "absent", label: "Kelmadi", active: "bg-rose-500 text-white" },
 ];
 const cellStyle = { present: "bg-emerald-500", late: "bg-amber-400", absent: "bg-rose-500" };
 
@@ -58,10 +68,6 @@ const initials = (name) =>
 const avatarClass = (id) => AVATARS[Math.abs(Number(id) || 0) % AVATARS.length];
 const dayMonth = computed(() => date.value.slice(0, 7));
 
-const selectedGroup = computed(
-  () => props.groups.find((g) => g.id === selectedGroupId.value) || null,
-);
-
 const dayStats = computed(() => ({
   present: dayRows.value.filter((r) => r.status === "present").length,
   late: dayRows.value.filter((r) => r.status === "late").length,
@@ -80,7 +86,10 @@ async function loadDay(silent = false) {
       fetch(`${API}/attendance/group-month/?group_id=${selectedGroupId.value}&month=${dayMonth.value}`),
     ]);
     const dData = await dRes.json();
-    if (dRes.ok) dayRows.value = dData.students || [];
+    if (dRes.ok) {
+      dayRows.value = dData.students || [];
+      if (dData.coin_actions) coinActions.value = dData.coin_actions;
+    }
     const mData = await mRes.json();
     if (mRes.ok) {
       const map = {};
@@ -150,11 +159,6 @@ async function setStatus(row, status) {
 function goToDate(d) {
   date.value = d;
   mode.value = "day";
-}
-
-function selectGroup(id) {
-  selectedGroupId.value = id;
-  reload();
 }
 
 function recStatus(row, d) {
@@ -229,7 +233,7 @@ onBeforeUnmount(stopPolling);
       <div class="bg-white border border-gray-100 rounded-2xl p-3 sm:p-4 mb-4 shadow-sm">
         <div class="flex flex-col sm:flex-row sm:items-center gap-3">
           <!-- Rejim segmenti -->
-          <div class="flex bg-gray-50 rounded-xl p-1 w-full sm:w-auto">
+          <div class="flex bg-gray-100 rounded-xl p-1 w-full sm:w-auto">
             <button @click="mode = 'day'"
               :class="mode === 'day' ? 'bg-gray-900 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'"
               class="flex-1 sm:flex-none px-4 py-1 rounded-lg text-sm font-medium transition flex items-center justify-center gap-1.5">
@@ -278,33 +282,51 @@ onBeforeUnmount(stopPolling);
         <!-- O'quvchilar -->
         <div class="space-y-2">
           <div v-for="row in dayRows" :key="row.attendance_id"
-            class="bg-white border border-gray-100 rounded-2xl p-3 sm:p-3.5 shadow-sm flex flex-col sm:flex-row sm:items-center gap-3">
-            <div class="flex items-center gap-3 min-w-0 flex-1">
-              <div class="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-                :class="avatarClass(row.student_id)">
-                {{ initials(row.name) }}
+            class="bg-white border border-gray-100 rounded-2xl p-3 sm:p-3.5 shadow-sm">
+            <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+              <div class="flex items-center gap-3 min-w-0 flex-1">
+                <div class="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                  :class="avatarClass(row.student_id)">
+                  {{ initials(row.name) }}
+                </div>
+                <div class="min-w-0">
+                  <p class="text-sm font-semibold text-gray-800 truncate flex items-center gap-1.5">
+                    <span class="truncate">{{ row.name }}</span>
+                    <!-- Coin balansi ustozga doim ko'rinib tursin -->
+                    <span v-if="typeof row.coin_balance === 'number'"
+                      class="inline-flex items-center gap-0.5 text-[11px] font-semibold text-amber-600 bg-amber-50 rounded-full px-1.5 py-0.5 tabular-nums shrink-0">
+                      <AppIcon name="coin" /> {{ row.coin_balance }}
+                    </span>
+                  </p>
+                  <p class="text-xs mt-0.5 flex items-center gap-1">
+                    <span
+                      :class="absentOf(row.student_id) >= absentWarn ? 'text-rose-600 font-semibold' : 'text-gray-400'">
+                      Bu oy: {{ absentOf(row.student_id) }} marta kelmagan
+                    </span>
+                  </p>
+                </div>
               </div>
-              <div class="min-w-0">
-                <p class="text-sm font-semibold text-gray-800 truncate">{{ row.name }}</p>
-                <p class="text-xs mt-0.5 flex items-center gap-1">
-                  <span
-                    :class="absentOf(row.student_id) >= absentWarn ? 'text-rose-600 font-semibold' : 'text-gray-400'">
-                    Bu oy: {{ absentOf(row.student_id) }} marta kelmagan
-                  </span>
-                </p>
+
+              <!-- Status segmenti -->
+              <div class="flex gap-1 bg-gray-100 rounded-full p-1 shrink-0 w-full sm:w-auto">
+                <button v-for="s in STATUSES" :key="s.key" @click="setStatus(row, s.key)"
+                  :disabled="!canMark || savingId === row.attendance_id" :class="[
+                    'flex-1 sm:flex-none px-3 py-1.5 rounded-full text-xs font-medium transition',
+                    row.status === s.key ? s.active : 'text-gray-400 hover:text-gray-600',
+                    savingId === row.attendance_id ? 'opacity-50 cursor-not-allowed' : '',
+                  ]">
+                  {{ s.label }}
+                </button>
               </div>
             </div>
 
-            <!-- Status segmenti -->
-            <div class="flex gap-1 bg-gray-50 rounded-full p-1 shrink-0 w-full sm:w-auto">
-              <button v-for="s in STATUSES" :key="s.key" @click="setStatus(row, s.key)"
-                :disabled="!canMark || savingId === row.attendance_id" :class="[
-                  'flex-1 sm:flex-none px-3 py-1.5 rounded-full text-xs font-medium transition',
-                  row.status === s.key ? s.active : 'text-gray-400 hover:text-gray-600',
-                  savingId === row.attendance_id ? 'opacity-50 cursor-not-allowed' : '',
-                ]">
-                {{ s.label }}
-              </button>
+            <!-- Coin berish (imtihon / vazifa / oylik bonus) — davomat
+                 belgilanayotgan joyning o'zida, alohida bo'limga o'tmasdan -->
+            <div v-if="canGiveCoins" class="mt-2.5 pt-2.5 border-t border-gray-50">
+              <CoinQuickGive :student-id="row.student_id" :student-name="row.name" :teacher-id="teacherId"
+                :balance="typeof row.coin_balance === 'number' ? row.coin_balance : null"
+                :bonus-used="!!row.bonus_used" :actions="coinActions"
+                @given="row.coin_balance = $event" @bonus-used="row.bonus_used = true" />
             </div>
           </div>
           <p v-if="!dayRows.length" class="text-center py-8 text-gray-400 text-sm">
@@ -324,11 +346,15 @@ onBeforeUnmount(stopPolling);
             <table class="w-full text-sm border-collapse">
               <thead>
                 <tr class="bg-gray-50 text-left text-[11px] uppercase tracking-wider text-gray-400">
-                  <th class="px-3 py-3 font-medium sticky left-0 bg-gray-50 z-10">O'quvchi</th>
+                  <!-- sticky ustun foni SHAFFOF bo'lmasligi kerak: tungi
+                       rejimda bg-gray-50 shaffofga o'tadi va ostidan
+                       surilayotgan sana ustunlari ko'rinib ketardi -->
+                  <th class="px-3 py-3 font-medium sticky left-0 bg-gray-100 z-10">O'quvchi</th>
                   <th v-for="d in monthDates" :key="d" class="px-2 py-3 font-medium text-center whitespace-nowrap">
                     {{ fmtDay(d) }}
                   </th>
                   <th class="px-3 py-3 font-medium text-center whitespace-nowrap">Kelmagan</th>
+                  <th class="px-3 py-3 font-medium text-center whitespace-nowrap">Coin</th>
                 </tr>
               </thead>
               <tbody>
@@ -353,6 +379,12 @@ onBeforeUnmount(stopPolling);
                       class="inline-flex items-center justify-center min-w-[1.75rem] px-2 py-0.5 rounded-full text-xs font-bold tabular-nums"
                       :class="row.absent >= absentWarn ? ' text-rose-600' : ' text-gray-500'">
                       {{ row.absent }}
+                    </span>
+                  </td>
+                  <td class="px-3 py-2.5 text-center">
+                    <span
+                      class="inline-flex items-center gap-0.5 text-xs font-semibold text-amber-600 bg-amber-50 rounded-full px-2 py-0.5 tabular-nums">
+                      <AppIcon name="coin" /> {{ row.coin_balance ?? 0 }}
                     </span>
                   </td>
                 </tr>
