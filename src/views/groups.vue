@@ -29,6 +29,13 @@ const groups = ref([]);
 const teachers = ref([]);
 const allStudents = ref([]);
 const courses = ref([]);
+const rooms = ref([]);
+
+// Tanlangan kursning darajalari — kurs almashsa ro'yxat ham almashadi
+const courseLevels = computed(() => {
+  const course = courses.value.find((c) => c.id === Number(form.value?.course_id));
+  return course?.levels || [];
+});
 
 const loadingGroups = ref(true);
 const savingGroup = ref(false);
@@ -187,6 +194,16 @@ async function fetchCourses() {
   }
 }
 
+async function fetchRooms() {
+  try {
+    const res = await fetch(`${API}/rooms/`, { headers: authHeaders() });
+    if (!res.ok) throw new Error("Xonalarni yuklashda xatolik");
+    rooms.value = await res.json();
+  } catch (e) {
+    console.error("Fetch Rooms Error:", e);
+  }
+}
+
 function groupCourse(group) {
   if (!group) return null;
   if (group.course && typeof group.course === "object" && group.course.id) {
@@ -207,7 +224,13 @@ async function fetchAllStudents() {
 }
 
 onMounted(async () => {
-  await Promise.all([fetchGroups(), fetchTeachers(), fetchAllStudents(), fetchCourses()]);
+  await Promise.all([
+    fetchGroups(),
+    fetchTeachers(),
+    fetchAllStudents(),
+    fetchCourses(),
+    fetchRooms(),
+  ]);
   // Normalize groups' students entries to objects with `id` when backend returns numeric IDs
   if (allStudents.value.length && groups.value.length) {
     groups.value = groups.value.map((g) => ({
@@ -236,6 +259,9 @@ function openCreate() {
     students: [],
     lesson_time: "09:00",
     room: "",
+    room_id: null,
+    level_id: null,
+    duration_minutes: 90,
     schedule: "odd",
     opened_date: "",
   };
@@ -258,6 +284,9 @@ function openEdit(group) {
     students: group.students?.map((s) => s.id ?? s) || [],
     lesson_time: group.lesson_time || "09:00",
     room: group.room || "",
+    room_id: group.room_ref || null,
+    level_id: group.level || null,
+    duration_minutes: group.duration_minutes || 90,
     schedule: group.schedule || "odd",
     opened_date: (group.opened_date || "").slice(0, 10),
   };
@@ -321,6 +350,9 @@ async function saveGroup() {
       students: form.value.students,
       lesson_time: form.value.lesson_time,
       room: form.value.room.trim(),
+      room_id: form.value.room_id || null,
+      level_id: form.value.level_id || null,
+      duration_minutes: form.value.duration_minutes || 90,
       schedule: form.value.schedule,
       opened_date: form.value.opened_date || null,
     };
@@ -333,11 +365,26 @@ async function saveGroup() {
       payload.teacher_id = Number(form.value.teacher_id);
     }
 
-    const res = await fetch(url, {
+    let res = await fetch(url, {
       method,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...authHeaders() },
       body: JSON.stringify(payload),
     });
+
+    // Xona band — menejerga kim bandligini aytamiz va baribir saqlash
+    // imkonini beramiz (katta zal ikkiga bo'lingan bo'lishi mumkin)
+    if (res.status === 409) {
+      const d = await res.json().catch(() => ({}));
+      const busy = (d.conflicts || [])
+        .map((c) => `• ${c.name} — ${c.lesson_time}${c.teacher_name ? ` (${c.teacher_name})` : ""}`)
+        .join("\n");
+      if (!confirm(`${d.error}\n\n${busy}\n\nBaribir saqlansinmi?`)) return;
+      res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ ...payload, force: true }),
+      });
+    }
 
     if (!res.ok) {
       const d = await res.json().catch(() => ({}));
@@ -840,10 +887,36 @@ async function sendGroupMsg() {
                       class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-gray-400 transition" />
                   </div>
                   <div>
-                    <label class="text-xs text-gray-400 uppercase tracking-wide block mb-1.5">Xona</label>
-                    <input v-model="form.room" placeholder="204-xona"
-                      class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-gray-400 transition" />
+                    <label class="text-xs text-gray-400 uppercase tracking-wide block mb-1.5">
+                      Dars davomiyligi
+                    </label>
+                    <select v-model.number="form.duration_minutes"
+                      class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-gray-400 bg-white transition">
+                      <option :value="60">60 daqiqa</option>
+                      <option :value="90">90 daqiqa</option>
+                      <option :value="120">120 daqiqa</option>
+                      <option :value="180">180 daqiqa</option>
+                    </select>
                   </div>
+                </div>
+
+                <!-- Xona ro'yxatdan tanlanadi: bir vaqtda bir xonaga ikki
+                     guruh qo'yilmasligi shu orqali tekshiriladi -->
+                <div class="mb-4">
+                  <label class="text-xs text-gray-400 uppercase tracking-wide block mb-1.5">Xona</label>
+                  <select v-if="rooms.length" v-model.number="form.room_id"
+                    class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-gray-400 bg-white transition">
+                    <option :value="null">— Xona tanlanmagan</option>
+                    <option v-for="r in rooms" :key="r.id" :value="r.id">
+                      {{ r.name }}<span v-if="r.capacity"> · {{ r.capacity }} o'rin</span>
+                    </option>
+                  </select>
+                  <input v-else v-model="form.room" placeholder="204-xona"
+                    class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-gray-400 transition" />
+                  <p v-if="!rooms.length" class="text-xs text-gray-400 mt-1.5">
+                    Xonalar ro'yxati bo'sh — «Kurslar va narxlar» bo'limidan xona qo'shsangiz,
+                    bandlik avtomatik tekshiriladi.
+                  </p>
                 </div>
 
                 <!-- Guruh ochilgan sana — oylik to'lov shu kundan hisoblanadi -->
@@ -900,6 +973,18 @@ async function sendGroupMsg() {
                     <option :value="null">— Tanlang</option>
                     <option v-for="c in courses" :key="c.id" :value="c.id">
                       {{ c.name }} ({{ formatSum(c.monthly_fee) }} so'm)
+                    </option>
+                  </select>
+                </div>
+
+                <!-- Kurs darajasi — narxi bo'lsa kurs narxidan ustun turadi -->
+                <div v-if="courseLevels.length" class="mb-4">
+                  <label class="text-xs text-gray-400 uppercase tracking-wide block mb-1.5">Daraja</label>
+                  <select v-model.number="form.level_id"
+                    class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-gray-400 bg-white transition">
+                    <option :value="null">— Darajasiz</option>
+                    <option v-for="l in courseLevels" :key="l.id" :value="l.id">
+                      {{ l.name }} ({{ formatSum(l.effective_fee) }} so'm)
                     </option>
                   </select>
                 </div>
