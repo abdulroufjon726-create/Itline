@@ -20,6 +20,36 @@
       </button>
     </div>
 
+    <!-- ══════════ DAVR VA HOLAT ══════════ -->
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 mb-4 space-y-3">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <p class="text-sm font-medium text-slate-700">
+          Ro'yxatga olingan davr
+          <span class="text-xs font-normal text-slate-400">— {{ rangeLabel(range) }}</span>
+        </p>
+        <button v-if="canManage" @click="openImport"
+          class="px-3.5 py-1.5 rounded-lg border border-slate-200 text-slate-500 text-xs hover:bg-slate-50 hover:text-indigo-500 transition flex items-center gap-1.5">
+          <AppIcon name="plus" /> Jadvaldan yuklash
+        </button>
+      </div>
+
+      <DateRange v-model="range" />
+
+      <!-- Davr kesimidagi sanoq: "30 yozildi, 5 kutilmoqda, 5 ga bog'lanish kerak" -->
+      <div class="flex flex-wrap gap-2 pt-1">
+        <button @click="statusFilter = ''" :class="chip(statusFilter === '')">
+          Hammasi
+          <span class="opacity-60 tabular-nums">{{ summary.total || 0 }}</span>
+        </button>
+        <button v-for="st in STUDENT_STATUSES" :key="st.key" @click="statusFilter = st.key"
+          :class="chip(statusFilter === st.key)">
+          <span class="w-1.5 h-1.5 rounded-full" :class="st.dot"></span>
+          {{ st.label }}
+          <span class="opacity-60 tabular-nums">{{ summary[st.key] || 0 }}</span>
+        </button>
+      </div>
+    </div>
+
     <!-- ══════════ ASOSIY KARTA ══════════ -->
     <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
       <div class="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center gap-3">
@@ -77,6 +107,7 @@
                 </th>
                 <th class="px-3 py-2.5 font-medium w-10 text-right"></th>
                 <th class="px-3 py-2.5 font-medium">Ism familiya</th>
+                <th class="px-3 py-2.5 font-medium">Holat</th>
                 <th class="px-3 py-2.5 font-medium">Telefon</th>
                 <th class="px-3 py-2.5 font-medium">Ustoz</th>
                 <th class="px-3 py-2.5 font-medium">Kunlar</th>
@@ -102,6 +133,20 @@
                   {{ s.name }} {{ s.surname }}
                   <span v-if="s.is_graduate"
                     class="ml-1 text-[10px] px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600">bitiruvchi</span>
+                </td>
+                <td class="px-3 py-2" @click.stop>
+                  <select v-if="canManage" :value="s.status" @change="changeStatus(s, $event.target.value)"
+                    :disabled="statusSavingId === s.id" :class="[
+                      'text-[11px] rounded-full px-2 py-1 border-0 outline-none cursor-pointer disabled:opacity-40',
+                      statusInfo(s.status).chip,
+                    ]">
+                    <option v-for="st in STUDENT_STATUSES" :key="st.key" :value="st.key">
+                      {{ st.label }}
+                    </option>
+                  </select>
+                  <span v-else class="text-[10px] px-1.5 py-0.5 rounded-full" :class="statusInfo(s.status).chip">
+                    {{ statusInfo(s.status).label }}
+                  </span>
                 </td>
                 <td class="px-3 py-2">
                   <a v-if="s.phone" :href="'tel:' + tel(s.phone)" @click.stop
@@ -172,6 +217,20 @@
               <p class="font-semibold text-slate-800 text-sm leading-snug">
                 {{ s.name }} {{ s.surname }}
               </p>
+              <div class="flex items-center gap-2" @click.stop>
+                <select v-if="canManage" :value="s.status" @change="changeStatus(s, $event.target.value)"
+                  :disabled="statusSavingId === s.id" :class="[
+                    'text-[11px] rounded-full px-2 py-0.5 border-0 outline-none disabled:opacity-40',
+                    statusInfo(s.status).chip,
+                  ]">
+                  <option v-for="st in STUDENT_STATUSES" :key="st.key" :value="st.key">
+                    {{ st.label }}
+                  </option>
+                </select>
+                <span v-else class="text-[10px] px-1.5 py-0.5 rounded-full" :class="statusInfo(s.status).chip">
+                  {{ statusInfo(s.status).label }}
+                </span>
+              </div>
               <p class="text-[13px] text-slate-500">
                 {{ s.teacher_name || "biriktirilmagan" }}
               </p>
@@ -241,8 +300,94 @@
       </div>
     </div>
 
+    <!-- ══════════ JADVALDAN YUKLASH ══════════ -->
+    <div v-if="importOpen" class="fixed inset-0 bg-slate-900/40 flex items-start justify-center p-4 z-40 overflow-y-auto"
+      @click.self="closeImport">
+      <div class="bg-white rounded-2xl w-full max-w-3xl shadow-xl my-8">
+        <div class="p-5 border-b border-slate-100">
+          <p class="font-semibold text-slate-800">O'quvchilarni jadvaldan yuklash</p>
+          <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+            Excel'dan nusxa olib shu yerga qo'ying yoki CSV faylni tanlang.
+            Birinchi qator — ustun nomlari. Tan olinadigan ustunlar:
+            <span class="font-mono text-slate-500">ism, familiya, telefon, telefon2, ustoz, guruh, holat, izoh</span>
+          </p>
+        </div>
+
+        <div class="p-5 space-y-4">
+          <div class="flex flex-wrap items-center gap-3">
+            <label
+              class="px-3.5 py-1.5 rounded-lg border border-slate-200 text-slate-500 text-xs hover:bg-slate-50 cursor-pointer transition">
+              CSV fayl tanlash
+              <input type="file" accept=".csv,text/csv,text/plain" class="hidden" @change="onFile" />
+            </label>
+            <label class="flex items-center gap-2 text-xs text-slate-500">
+              Holat (ustun bo'lmasa)
+              <select v-model="importStatus"
+                class="border border-slate-200 bg-slate-50 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:border-indigo-300">
+                <option v-for="st in STUDENT_STATUSES" :key="st.key" :value="st.key">{{ st.label }}</option>
+              </select>
+            </label>
+            <label class="flex items-center gap-2 text-xs text-slate-500">
+              Guruh (ustun bo'lmasa)
+              <select v-model="importGroupId"
+                class="border border-slate-200 bg-slate-50 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:border-indigo-300">
+                <option value="">— tanlanmagan —</option>
+                <option v-for="g in groups" :key="g.id" :value="g.id">{{ g.name }}</option>
+              </select>
+            </label>
+          </div>
+
+          <textarea v-model="importText" rows="8" placeholder="ism	familiya	telefon	guruh
+Ali	Valiyev	901234567	PY-1"
+            class="w-full border border-slate-200 bg-slate-50 focus:bg-white rounded-lg px-3 py-2 text-xs font-mono outline-none focus:border-indigo-300 transition"></textarea>
+
+          <!-- Tekshiruv natijasi -->
+          <div v-if="importResult" class="rounded-xl border border-slate-200 overflow-hidden">
+            <div class="flex flex-wrap gap-4 px-4 py-3 bg-slate-100 text-xs">
+              <span class="text-emerald-600 font-medium">{{ importResult.summary.created }} yaratiladi</span>
+              <span class="text-amber-600">{{ importResult.summary.duplicates }} dublikat</span>
+              <span class="text-rose-600">{{ importResult.summary.errors }} xato</span>
+              <span class="text-slate-400 ml-auto">jami {{ importResult.summary.total }} qator</span>
+            </div>
+            <div class="max-h-56 overflow-y-auto divide-y divide-slate-100">
+              <div v-for="r in importResult.rows" :key="r.line" class="px-4 py-2 text-xs flex items-start gap-2">
+                <span class="text-slate-300 tabular-nums w-6 shrink-0">{{ r.line }}</span>
+                <span class="w-20 shrink-0" :class="{
+                  'text-emerald-600': r.status === 'created',
+                  'text-amber-600': r.status === 'duplicate',
+                  'text-rose-600': r.status === 'error',
+                }">
+                  {{ r.status === "created" ? "yaratiladi" : r.status === "duplicate" ? "dublikat" : "xato" }}
+                </span>
+                <span class="text-slate-600 flex-1 min-w-0">
+                  {{ r.name || "—" }}
+                  <span v-if="r.group_name" class="text-slate-400">· {{ r.group_name }}</span>
+                  <span v-if="r.reason" class="text-slate-400">— {{ r.reason }}</span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-5 border-t border-slate-100 flex flex-wrap gap-2 justify-end">
+          <button @click="closeImport"
+            class="px-4 py-2 rounded-lg border border-slate-200 text-slate-500 text-sm hover:bg-slate-50">
+            Yopish
+          </button>
+          <button @click="runImport(true)" :disabled="!importText.trim() || importBusy"
+            class="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 text-sm hover:bg-slate-50 disabled:opacity-40">
+            Tekshirish
+          </button>
+          <button @click="runImport(false)" :disabled="!canWriteImport || importBusy"
+            class="px-5 py-2 rounded-lg bg-slate-900 text-white text-sm hover:bg-slate-800 disabled:opacity-40">
+            {{ importBusy ? "Yuklanmoqda..." : `Yuklash${importResult ? ` (${importResult.summary.created})` : ""}` }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <p v-if="toast"
-      class="fixed top-4 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-sm px-4 py-2 rounded-lg shadow-lg z-40">
+      class="fixed top-4 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-sm px-4 py-2 rounded-lg shadow-lg z-50">
       {{ toast }}
     </p>
   </div>
@@ -252,7 +397,10 @@
 import { ref, computed, onMounted, watch } from "vue";
 import AppIcon from "@/components/AppIcon.vue";
 import ManagerNav from "@/components/ManagerNav.vue";
+import DateRange from "@/components/DateRange.vue";
 import { apiGet, apiSend, currentUser } from "@/utils/managerApi";
+import { emptyRange, rangeLabel, rangeParams } from "@/utils/range";
+import { STUDENT_STATUSES, statusInfo } from "@/utils/status";
 
 // Faqat admin yoki menejer o'chira oladi (sahifa allaqachon menejerlarga
 // cheklangan, bu qo'shimcha himoya va tugmalarni yashirish uchun)
@@ -279,6 +427,22 @@ const toast = ref("");
 const unassignedCount = ref(0);
 const deletingId = ref(null);
 const bulkDeleting = ref(false);
+
+// Davr + holat filtri. Standart — butun davr: menejer sahifani ochganda
+// hamma o'quvchisini ko'rishi kerak, davrni o'zi toraytiradi.
+const range = ref(emptyRange());
+const statusFilter = ref("");
+const summary = ref({ pending: 0, contact: 0, active: 0, total: 0 });
+const statusSavingId = ref(null);
+
+// Jadvaldan yuklash
+const importOpen = ref(false);
+const importText = ref("");
+const importStatus = ref("pending");
+const importGroupId = ref("");
+const importResult = ref(null);
+const importBusy = ref(false);
+const groups = ref([]);
 
 // Doimiy oylik chegirma tahriri
 const editingDiscountId = ref(null);
@@ -376,18 +540,169 @@ async function fetchTeachers() {
 async function fetchStudents() {
   loading.value = true;
   try {
-    const p = new URLSearchParams();
+    const p = rangeParams(range.value);
     if (activeTeacher.value) p.set("teacher_id", activeTeacher.value);
     if (search.value.trim()) p.set("search", search.value.trim());
     if (includeGraduates.value) p.set("include_graduates", "1");
-    const { data } = await apiGet(`/students/overview/?${p}`);
+    if (statusFilter.value) p.set("status", statusFilter.value);
+    const { ok, data } = await apiGet(`/students/overview/?${p}`);
+    if (!ok) {
+      say(data.error || "Ma'lumot yuklanmadi");
+      return;
+    }
     students.value = data.students || [];
     hidden.value = data.hidden || [];
+    // Sanoq qidiruv va holat filtridan oldin olinadi — davr statistikasi
+    // ro'yxat toraysa ham o'zgarmaydi
+    summary.value = data.summary || { pending: 0, contact: 0, active: 0, total: 0 };
   } catch (e) {
     console.error("students/overview:", e);
     say("Ma'lumot yuklanmadi");
   } finally {
     loading.value = false;
+  }
+}
+
+async function changeStatus(s, value) {
+  if (!canManage.value || value === s.status) return;
+  const before = s.status;
+  statusSavingId.value = s.id;
+  try {
+    const { ok, data } = await apiSend(`/students/update/${s.id}/`, "PATCH", {
+      status: value,
+    });
+    if (!ok) {
+      s.status = before;
+      say(data.error || "Holat saqlanmadi");
+      return;
+    }
+    s.status = data.status || value;
+    say(`Holat: ${data.status_label || value}`);
+    // Sanoq va ro'yxat filtri holatga bog'liq — qayta o'qiymiz
+    fetchStudents();
+  } catch (e) {
+    s.status = before;
+    console.error("status:", e);
+    say("Tarmoq xatosi");
+  } finally {
+    statusSavingId.value = null;
+  }
+}
+
+// ── Jadvaldan yuklash ──
+// Fayl brauzerda o'qiladi: menejer nima yuklanishini avval ekranda
+// ko'radi, backendga esa tayyor qatorlar boradi.
+
+const IMPORT_COLUMNS = {
+  ism: "name", name: "name", "f.i.sh": "name", fish: "name", "ism familiya": "name",
+  familiya: "surname", surname: "surname", familya: "surname",
+  telefon: "phone", tel: "phone", phone: "phone", raqam: "phone",
+  telefon2: "phone2", "qo'shimcha telefon": "phone2", phone2: "phone2",
+  ustoz: "teacher_name", teacher: "teacher_name", "o'qituvchi": "teacher_name",
+  guruh: "group_name", group: "group_name",
+  holat: "status", status: "status",
+  izoh: "note", note: "note",
+  etap: "stage", stage: "stage",
+};
+
+const STATUS_WORDS = {
+  kutilmoqda: "pending", kutmoqda: "pending", pending: "pending",
+  "bog'lanish kerak": "contact", "boglanish kerak": "contact", contact: "contact",
+  faol: "active", active: "active",
+};
+
+const canWriteImport = computed(
+  () => !!importResult.value && importResult.value.summary.created > 0
+);
+
+function openImport() {
+  importOpen.value = true;
+  importResult.value = null;
+  if (!groups.value.length) loadGroups();
+}
+
+function closeImport() {
+  importOpen.value = false;
+  importText.value = "";
+  importResult.value = null;
+}
+
+async function loadGroups() {
+  try {
+    const { data } = await apiGet("/groups/");
+    groups.value = Array.isArray(data) ? data : [];
+  } catch (e) {
+    console.error("groups:", e);
+  }
+}
+
+function onFile(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    importText.value = String(reader.result || "");
+    importResult.value = null;
+  };
+  reader.readAsText(file, "utf-8");
+  event.target.value = "";
+}
+
+/** Excel'dan nusxa (tab bilan) ham, CSV (vergul/nuqta-vergul) ham tushunadi. */
+function splitLine(line) {
+  if (line.includes("\t")) return line.split("\t");
+  if (line.includes(";")) return line.split(";");
+  return line.split(",");
+}
+
+function parseRows(text) {
+  const lines = text.split(/\r?\n/).filter((l) => l.trim());
+  if (lines.length < 2) return [];
+  const headers = splitLine(lines[0]).map((h) =>
+    IMPORT_COLUMNS[h.trim().toLowerCase()] || ""
+  );
+  return lines.slice(1).map((line) => {
+    const cells = splitLine(line);
+    const row = {};
+    headers.forEach((key, i) => {
+      if (!key) return;
+      const value = (cells[i] || "").trim();
+      if (!value) return;
+      row[key] = key === "status" ? STATUS_WORDS[value.toLowerCase()] || value : value;
+    });
+    return row;
+  });
+}
+
+async function runImport(dryRun) {
+  const rows = parseRows(importText.value);
+  if (!rows.length) {
+    say("Qator topilmadi — birinchi qatorda ustun nomlari bo'lishi kerak");
+    return;
+  }
+  importBusy.value = true;
+  try {
+    const { ok, data } = await apiSend("/students/import/", "POST", {
+      rows,
+      dry_run: dryRun,
+      default_status: importStatus.value,
+      default_group_id: importGroupId.value || null,
+    });
+    if (!ok) {
+      say(data.error || "Yuklanmadi");
+      return;
+    }
+    importResult.value = data;
+    if (!dryRun) {
+      say(`${data.summary.created} ta o'quvchi yuklandi`);
+      await Promise.all([fetchTeachers(), fetchStudents()]);
+      if (!data.summary.errors && !data.summary.duplicates) closeImport();
+    }
+  } catch (e) {
+    console.error("import:", e);
+    say("Tarmoq xatosi");
+  } finally {
+    importBusy.value = false;
   }
 }
 
@@ -482,10 +797,10 @@ async function doTransfer() {
 }
 
 let timer = null;
-watch([search, activeTeacher, includeGraduates], () => {
+watch([search, activeTeacher, includeGraduates, statusFilter, range], () => {
   clearTimeout(timer);
   timer = setTimeout(fetchStudents, 300);
-});
+}, { deep: true });
 
 onMounted(async () => {
   await fetchTeachers();

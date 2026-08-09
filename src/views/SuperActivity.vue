@@ -52,6 +52,12 @@
           </select>
         </div>
 
+        <!-- Aniq kunlar/oy/yil — "Davr" tanlovidan ustun turadi -->
+        <div class="sm:col-span-2 lg:col-span-4">
+          <label class="block text-xs text-slate-400 mb-1.5">Yoki aniq sana oralig'i</label>
+          <DateRange v-model="range" />
+        </div>
+
         <div>
           <label class="block text-xs text-slate-400 mb-1.5">Qidirish</label>
           <input
@@ -168,7 +174,10 @@ import { ref, computed, onMounted, watch } from "vue";
 import AppIcon from "@/components/AppIcon.vue";
 import SuperLayout from "@/components/SuperLayout.vue";
 import { apiGet } from "@/utils/managerApi";
+import DateRange from "@/components/DateRange.vue";
+import { emptyRange, rangeParams } from "@/utils/range";
 
+const range = ref(emptyRange());
 const rows = ref([]);
 const actions = ref([]);
 const managers = ref([]);
@@ -305,7 +314,11 @@ function query(extra = {}) {
   const f = { ...filters.value, ...extra };
   if (f.manager_id) p.set("manager_id", f.manager_id);
   if (f.action) p.set("action", f.action);
-  if (f.days) p.set("days", f.days);
+  // Aniq oraliq tanlansa "oxirgi N kun" ustidan o'tadi — ikkalasi
+  // birga yuborilsa natija chalkash bo'lardi
+  const hasRange = !!(range.value.from || range.value.to);
+  if (f.days && !hasRange) p.set("days", f.days);
+  rangeParams(range.value, p);
   if (f.search) p.set("search", f.search);
   if (f.before_id) p.set("before_id", f.before_id);
   return p.toString();
@@ -350,7 +363,7 @@ async function loadManagers() {
 // Qidiruv har harfda so'rov yubormasin
 let timer = null;
 watch(
-  filters,
+  [filters, range],
   () => {
     clearTimeout(timer);
     timer = setTimeout(load, 300);

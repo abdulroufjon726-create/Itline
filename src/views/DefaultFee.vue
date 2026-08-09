@@ -44,14 +44,96 @@
                             </td>
                             <td class="px-4 py-3 text-gray-500">{{ c.groups_count ?? 0 }} ta</td>
                             <td class="px-4 py-3">
-                                <button @click="removeCourse(c)"
-                                    class="text-sm px-3 py-1.5 rounded-lg border border-red-300/30 hover:bg-red-500/50 text-red-500 cursor-pointer">
-                                    O'chirish
-                                </button>
+                                <div class="flex items-center gap-2 justify-end">
+                                    <button @click="toggleLevels(c)"
+                                        class="text-sm px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 cursor-pointer">
+                                        Darajalar<span v-if="c.levels_count"> ({{ c.levels_count }})</span>
+                                    </button>
+                                    <button @click="removeCourse(c)"
+                                        class="text-sm px-3 py-1.5 rounded-lg border border-red-300/30 hover:bg-red-500/50 text-red-500 cursor-pointer">
+                                        O'chirish
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <!-- Kurs darajalari: narxi bo'lsa kurs narxidan ustun turadi -->
+                        <tr v-if="openLevelsFor === c.id" class="border-t border-gray-100 bg-gray-50/60">
+                            <td colspan="4" class="px-4 py-3">
+                                <p class="text-xs text-gray-400 mb-2">
+                                    Daraja narxi 0 bo'lsa kursning umumiy narxi ishlatiladi.
+                                    Narx o'zgarsa keyingi oylarning to'lovlari avtomatik yangilanadi.
+                                </p>
+
+                                <div v-for="l in (c.levels || [])" :key="l.id"
+                                    class="flex flex-wrap items-center gap-2 py-1.5">
+                                    <input v-model="l.name" @change="saveLevel(c, l)"
+                                        class="w-40 border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10" />
+                                    <input type="number" v-model.number="l.monthly_fee" @change="saveLevel(c, l)"
+                                        placeholder="0 = kurs narxi"
+                                        class="w-32 border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10" />
+                                    <span class="text-xs text-gray-400">
+                                        amaldagi: {{ formatSum(l.effective_fee) }} so'm · {{ l.groups_count ?? 0 }} guruh
+                                    </span>
+                                    <button @click="removeLevel(c, l)"
+                                        class="text-xs px-2 py-1 rounded-lg text-red-500 hover:bg-red-50 cursor-pointer ml-auto">
+                                        O'chirish
+                                    </button>
+                                </div>
+
+                                <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-gray-200 mt-2">
+                                    <input v-model="levelDraft.name" placeholder="Daraja nomi (Beginner, A1...)"
+                                        class="w-48 border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10" />
+                                    <input type="number" v-model.number="levelDraft.monthly_fee" placeholder="Narx (ixtiyoriy)"
+                                        class="w-36 border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10" />
+                                    <button @click="addLevel(c)" :disabled="!levelDraft.name.trim() || levelBusy"
+                                        class="text-sm px-3 py-1.5 rounded-lg bg-gray-900 text-white hover:bg-gray-800 disabled:opacity-40 cursor-pointer">
+                                        Daraja qo'shish
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- ══════════ XONALAR ══════════ -->
+        <div class="bg-white rounded-2xl border border-gray-100 mt-6">
+            <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                <div>
+                    <h2 class="font-semibold text-gray-900">Xonalar</h2>
+                    <p class="text-xs text-gray-400 mt-0.5">
+                        Guruh ochilganda xona ro'yxatdan tanlanadi — bir vaqtda bir xonaga
+                        ikki guruh qo'yilsa ogohlantiriladi.
+                    </p>
+                </div>
+            </div>
+
+            <div class="p-4 space-y-2">
+                <div v-for="r in rooms" :key="r.id" class="flex flex-wrap items-center gap-2">
+                    <input v-model="r.name" @change="saveRoom(r)"
+                        class="w-40 border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10" />
+                    <input type="number" v-model.number="r.capacity" @change="saveRoom(r)" placeholder="Sig'imi"
+                        class="w-28 border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10" />
+                    <span class="text-xs text-gray-400">{{ r.groups_count ?? 0 }} guruh</span>
+                    <button @click="removeRoom(r)"
+                        class="text-xs px-2 py-1 rounded-lg text-red-500 hover:bg-red-50 cursor-pointer ml-auto">
+                        O'chirish
+                    </button>
+                </div>
+                <p v-if="!rooms.length" class="text-sm text-gray-400 py-2">Hozircha xona yo'q</p>
+
+                <div class="flex flex-wrap items-center gap-2 pt-3 border-t border-gray-100">
+                    <input v-model="roomDraft.name" placeholder="Xona nomi (204-xona)"
+                        class="w-48 border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10" />
+                    <input type="number" v-model.number="roomDraft.capacity" placeholder="Sig'imi"
+                        class="w-28 border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10" />
+                    <button @click="addRoom" :disabled="!roomDraft.name.trim() || roomBusy"
+                        class="text-sm px-3 py-1.5 rounded-lg bg-gray-900 text-white hover:bg-gray-800 disabled:opacity-40 cursor-pointer">
+                        Xona qo'shish
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -120,6 +202,7 @@
 */
 import { ref, computed, onMounted } from "vue";
 import axios from "axios";
+import { authHeaders } from "@/utils/managerApi";
 
 const API_BASE = "https://itline-django-9s85.onrender.com/api";
 
@@ -237,6 +320,119 @@ async function removeCourse(course) {
     } catch (e) {
         console.error("Kursni o'chirishda xatolik (unga bog'langan guruhlar bo'lishi mumkin):", e);
         alert("Kursni o'chirib bo'lmadi. Unga bog'langan guruhlar bo'lishi mumkin.");
+    }
+}
+
+// ── Kurs darajalari ──
+// Daraja narxi kurs narxidan ustun turadi: bitta kursning "Beginner" va
+// "Advanced" guruhlari har xil turishi mumkin. Narx 0 bo'lsa kursniki.
+
+const openLevelsFor = ref(null);
+const levelDraft = ref({ name: "", monthly_fee: null });
+const levelBusy = ref(false);
+
+function toggleLevels(course) {
+    openLevelsFor.value = openLevelsFor.value === course.id ? null : course.id;
+    levelDraft.value = { name: "", monthly_fee: null };
+}
+
+async function addLevel(course) {
+    if (!levelDraft.value.name.trim()) return;
+    levelBusy.value = true;
+    try {
+        await axios.post(`${API_BASE}/courses/${course.id}/levels/create/`, {
+            name: levelDraft.value.name.trim(),
+            monthly_fee: levelDraft.value.monthly_fee || 0,
+        }, { headers: authHeaders() });
+        levelDraft.value = { name: "", monthly_fee: null };
+        await loadCourses();
+        openLevelsFor.value = course.id;
+    } catch (e) {
+        alert(e?.response?.data?.error || "Daraja qo'shilmadi");
+    } finally {
+        levelBusy.value = false;
+    }
+}
+
+async function saveLevel(course, level) {
+    try {
+        await axios.patch(`${API_BASE}/course-levels/${level.id}/update/`, {
+            name: level.name,
+            monthly_fee: level.monthly_fee || 0,
+        }, { headers: authHeaders() });
+        await loadCourses();
+        openLevelsFor.value = course.id;
+    } catch (e) {
+        alert(e?.response?.data?.error || "Daraja saqlanmadi");
+        await loadCourses();
+    }
+}
+
+async function removeLevel(course, level) {
+    if (!confirm(`"${level.name}" darajasi o'chiriladi. Guruhlar saqlanadi.`)) return;
+    try {
+        await axios.delete(`${API_BASE}/course-levels/${level.id}/delete/`, {
+            headers: authHeaders(),
+        });
+        await loadCourses();
+        openLevelsFor.value = course.id;
+    } catch (e) {
+        alert(e?.response?.data?.error || "Daraja o'chirilmadi");
+    }
+}
+
+// ── Xonalar ──
+
+const rooms = ref([]);
+const roomDraft = ref({ name: "", capacity: null });
+const roomBusy = ref(false);
+
+async function loadRooms() {
+    try {
+        const { data } = await axios.get(`${API_BASE}/rooms/`, { headers: authHeaders() });
+        rooms.value = data || [];
+    } catch (e) {
+        console.error("Xonalarni yuklashda xatolik:", e);
+    }
+}
+
+async function addRoom() {
+    if (!roomDraft.value.name.trim()) return;
+    roomBusy.value = true;
+    try {
+        await axios.post(`${API_BASE}/rooms/create/`, {
+            name: roomDraft.value.name.trim(),
+            capacity: roomDraft.value.capacity || 0,
+        }, { headers: authHeaders() });
+        roomDraft.value = { name: "", capacity: null };
+        await loadRooms();
+    } catch (e) {
+        alert(e?.response?.data?.error || "Xona qo'shilmadi");
+    } finally {
+        roomBusy.value = false;
+    }
+}
+
+async function saveRoom(room) {
+    try {
+        await axios.patch(`${API_BASE}/rooms/${room.id}/update/`, {
+            name: room.name,
+            capacity: room.capacity || 0,
+        }, { headers: authHeaders() });
+        await loadRooms();
+    } catch (e) {
+        alert(e?.response?.data?.error || "Xona saqlanmadi");
+        await loadRooms();
+    }
+}
+
+async function removeRoom(room) {
+    if (!confirm(`"${room.name}" xonasi o'chiriladi. Guruhlar xonasiz qoladi.`)) return;
+    try {
+        await axios.delete(`${API_BASE}/rooms/${room.id}/delete/`, { headers: authHeaders() });
+        await loadRooms();
+    } catch (e) {
+        alert(e?.response?.data?.error || "Xona o'chirilmadi");
     }
 }
 
@@ -392,6 +588,7 @@ async function addSelectedStudents() {
 
 onMounted(async () => {
     await loadCourses();
+    await loadRooms();
     await loadStudents();
     await loadGroups();
     await loadTeachers();

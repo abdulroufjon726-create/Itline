@@ -1,8 +1,9 @@
 import { createRouter, createWebHistory, START_LOCATION } from "vue-router";
 import OfflineView from "@/views/OfflineView.vue";
 
-// Sayt ochilishi bilan serverni uyg'otamiz (Render free plan uxlab qoladi)
-fetch("https://itline-django-9s85.onrender.com/api/ping/").catch(() => {});
+// Serverni uyg'otish ping'i `composables/useKeepAwake` ga ko'chdi:
+// u sahifa ochilishida ham uradi, keyin har 10 daqiqada takrorlaydi —
+// bir marta uyg'otish yetmasdi, server yana uxlab qolardi.
 
 const lazy = (view: string) => () => import(`@/views/${view}.vue`);
 
