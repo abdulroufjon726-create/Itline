@@ -44,7 +44,8 @@
         </button>
       </div>
       <p class="text-[11px] text-slate-400 mt-2">
-        Boshlang'ich parol: <span class="font-mono">excel2024</span>
+        Boshlang'ich parol: <span class="font-mono">{{ initialPassword }}</span>
+        — ustoz shu bilan kirib, profilida o'zinikiga almashtiradi.
       </p>
     </div>
 
@@ -405,6 +406,10 @@ const historyFor = ref(null);
 const history = ref(null);
 const historyLoading = ref(false);
 
+// Yangi ustozning boshlang'ich paroli — serverdan keladi (create javobida).
+// Hali ustoz qo'shilmagan bo'lsa odatdagi kodni ko'rsatib turamiz.
+const initialPassword = ref("excel2024");
+
 const money = (v) => Number(v || 0).toLocaleString("uz-UZ");
 
 const editing = ref(null);
@@ -512,7 +517,8 @@ async function createTeacher() {
       phone: newTeacher.phone.trim(),
     });
     if (!ok) return say(data.error || "Qo'shilmadi");
-    say(`${data.name} qo'shildi`);
+    if (data.initial_password) initialPassword.value = data.initial_password;
+    say(`${data.name} qo'shildi — paroli: ${data.initial_password || initialPassword.value}`);
     newTeacher.name = "";
     newTeacher.phone = "";
     await fetchTeachers();

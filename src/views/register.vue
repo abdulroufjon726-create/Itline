@@ -192,8 +192,13 @@ async function submitLogin() {
       // u o'quvchilar sahifasiga tushib qolardi
       const payload = buildUserPayload(data);
       localStorage.setItem("user", JSON.stringify(payload));
-      // Standart parol bilan kirgan admin/ustozga panelda eslatma chiqadi
-      if (form.password === "excel2024") {
+      // Standart parol bilan kirgan admin/ustozga panelda eslatma chiqadi.
+      // Buni server aytadi (`used_default_password`) — kod o'zgarsa ham
+      // to'g'ri qoladi. Eski backend bu maydonni qaytarmasa, avvalgidek
+      // o'zimiz solishtiramiz.
+      const usedDefault =
+        data.used_default_password ?? form.password === "excel2024";
+      if (usedDefault) {
         localStorage.setItem("used_default_password", "1");
       } else {
         localStorage.removeItem("used_default_password");
