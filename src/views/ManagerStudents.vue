@@ -532,7 +532,9 @@ function toggleAll() {
 
 async function fetchTeachers() {
   const { data } = await apiGet("/teachers/overview/");
-  teachers.value = Array.isArray(data) ? data : [];
+  // Bu manzil ?format=full bilan obyekt qaytaradi — shu sahifa uni
+  // so'ramaydi, lekin ikkala shaklni ham tushunib tursin
+  teachers.value = Array.isArray(data) ? data : data?.teachers || [];
   const un = await apiGet("/students/overview/?teacher_id=none");
   unassignedCount.value = un.data.count || 0;
 }

@@ -446,8 +446,12 @@ async function fetchTeachers() {
       say(data.error || "Ma'lumot yuklanmadi");
       return;
     }
-    teachers.value = data.teachers || [];
-    totals.value = data.totals || null;
+    // Backend ikki xil javob berishi mumkin: eski ko'rinishlar uchun
+    // oddiy massiv, ?format=full uchun {teachers, totals}. Frontend
+    // backenddan oldin deploy bo'lishi mumkin — o'shanda massiv keladi
+    // va faqat `data.teachers` ni o'qisak ro'yxat bo'sh qolib ketardi.
+    teachers.value = Array.isArray(data) ? data : data.teachers || [];
+    totals.value = Array.isArray(data) ? null : data.totals || null;
   } catch (e) {
     console.error("teachers/overview:", e);
     say("Ma'lumot yuklanmadi");
