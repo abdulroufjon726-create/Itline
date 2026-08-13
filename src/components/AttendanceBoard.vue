@@ -48,6 +48,57 @@ const STATUSES = [
   { key: "late", label: "Kech", active: "bg-amber-400 text-white" },
   { key: "absent", label: "Kelmadi", active: "bg-rose-500 text-white" },
 ];
+
+// ── Tanlangan kunda darsi bor guruhlar ──
+//
+// Du-Chor-Juma guruhini seshanba kuni belgilashning ma'nosi yo'q, lekin
+// ro'yxatda hammasi turgani uchun adashib boshqa guruh tanlab, o'sha
+// kunga yo'q dars ochilib ketardi. Endi ro'yxat kunga qarab qisqaradi.
+//
+// JS getDay(): yakshanba=0. Du-Chor-Ju = 1,3,5 · Se-Pay-Sha = 2,4,6.
+const ODD_DAYS = [1, 3, 5];
+const EVEN_DAYS = [2, 4, 6];
+
+const showAllGroups = ref(false);
+
+const daySchedule = computed(() => {
+  const d = new Date(`${date.value}T00:00:00`).getDay();
+  if (ODD_DAYS.includes(d)) return "odd";
+  if (EVEN_DAYS.includes(d)) return "even";
+  return null; // yakshanba — jadvalli guruh yo'q
+});
+
+const dayLabel = computed(() =>
+  daySchedule.value === "odd"
+    ? "Du-Chor-Juma"
+    : daySchedule.value === "even"
+      ? "Se-Pay-Shanba"
+      : "Yakshanba",
+);
+
+const visibleGroups = computed(() => {
+  // Oylik ko'rinishda butun oy ko'riladi — bitta kunga qarab qisqartirmaymiz
+  if (showAllGroups.value || mode.value !== "day") return props.groups;
+  if (!daySchedule.value) return props.groups.filter((g) => g.schedule === "daily");
+  return props.groups.filter(
+    (g) => g.schedule === daySchedule.value || g.schedule === "daily",
+  );
+});
+
+const hiddenGroupCount = computed(
+  () => props.groups.length - visibleGroups.value.length,
+);
+
+// Tanlangan guruh shu kunda o'qimasa tanlovni bo'shatamiz — aks holda
+// ekranda boshqa guruhning ro'yxati qolib ketardi
+watch(visibleGroups, (list) => {
+  if (
+    selectedGroupId.value &&
+    !list.some((g) => g.id === selectedGroupId.value)
+  ) {
+    selectedGroupId.value = null;
+  }
+});
 const cellStyle = { present: "bg-emerald-500", late: "bg-amber-400", absent: "bg-rose-500" };
 
 const AVATARS = [
@@ -208,23 +259,42 @@ onBeforeUnmount(stopPolling);
     <div class="flex flex-col sm:flex-row gap-3 mb-4">
       <slot name="filters" />
       <div class="w-full sm:w-64">
-        <label class="block text-xs font-medium text-gray-400 mb-1.5">Guruh</label>
+        <label class="block text-xs font-medium text-gray-400 mb-1.5">
+          Guruh
+          <span v-if="mode === 'day'" class="normal-case text-gray-300">
+            · {{ dayLabel }}
+          </span>
+        </label>
         <div class="relative">
           <select
             v-model="selectedGroupId"
-            :disabled="!groups.length"
+            :disabled="!visibleGroups.length"
             class="w-full appearance-none border border-gray-200 bg-white rounded-xl pl-3 pr-9 py-2.5 text-sm outline-none focus:border-indigo-300 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <option :value="null" disabled>
-              {{ groups.length ? "Guruhni tanlang…" : "—" }}
+              {{ visibleGroups.length ? "Guruhni tanlang…" : "Bu kunda dars yo'q" }}
             </option>
-            <option v-for="g in groups" :key="g.id" :value="g.id">{{ g.name }}</option>
+            <option v-for="g in visibleGroups" :key="g.id" :value="g.id">{{ g.name }}</option>
           </select>
           <AppIcon
             name="chevron-down"
             class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
           />
         </div>
+
+        <!-- Kerak bo'lsa (masalan qo'shimcha dars) hammasini ko'rsatish mumkin -->
+        <button
+          v-if="mode === 'day' && (hiddenGroupCount > 0 || showAllGroups)"
+          type="button"
+          @click="showAllGroups = !showAllGroups"
+          class="mt-1.5 text-[11px] text-indigo-500 hover:underline"
+        >
+          {{
+            showAllGroups
+              ? "Faqat shu kungi guruhlar"
+              : `Yana ${hiddenGroupCount} ta guruh — hammasini ko'rsatish`
+          }}
+        </button>
       </div>
     </div>
 

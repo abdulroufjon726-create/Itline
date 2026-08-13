@@ -15,6 +15,11 @@ const loading = ref(true);
 const saving = ref(false);
 const feedback = ref(""); // "success:..." yoki "error:..."
 
+// Maydonlar ishorali — menejer qiymatning ta'sirini ekranda ko'rib tursin
+const signed = (n) => `${Number(n || 0) > 0 ? "+" : ""}${Number(n || 0)}`;
+const effectClass = (n) =>
+  Number(n || 0) < 0 ? "text-rose-600" : Number(n || 0) > 0 ? "text-emerald-600" : "text-gray-400";
+
 async function apiFetch(path, options = {}) {
   const res = await fetch(`${API}${path}`, {
     headers: { "Content-Type": "application/json" },
@@ -134,6 +139,23 @@ onMounted(fetchSettings);
             class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-100 transition"
           />
         </div>
+      </div>
+
+      <!-- Maydonlar ishorali: musbat qiymat coin QO'SHADI, manfiy AYIRADI.
+           "Kelmadi" ga musbat son yozilsa darsga kelmagan o'quvchi
+           mukofot olib qolardi — buni ekranda ochiq aytamiz. -->
+      <div class="mt-3 space-y-1">
+        <p class="text-xs text-gray-400">
+          Har bir belgilash shu qadar o'zgartiradi:
+          <span class="font-medium" :class="effectClass(coinSettings.present)">Keldi {{ signed(coinSettings.present) }}</span>,
+          <span class="font-medium" :class="effectClass(coinSettings.late)">Kech {{ signed(coinSettings.late) }}</span>,
+          <span class="font-medium" :class="effectClass(coinSettings.absent)">Kelmadi {{ signed(coinSettings.absent) }}</span>
+        </p>
+        <p v-if="coinSettings.absent > 0" class="text-xs text-amber-600">
+          Diqqat: «Kelmadi» musbat turibdi — darsga kelmagan o'quvchiga
+          {{ coinSettings.absent }} coin <b>qo'shiladi</b>. Jarima bo'lishi
+          uchun manfiy yozing (masalan −{{ coinSettings.absent }}).
+        </p>
       </div>
 
       <!-- ── Oylik to'lov mukofoti ── -->
