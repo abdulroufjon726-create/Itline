@@ -4,7 +4,7 @@ import { useRouter } from "vue-router";
 import { useUiStore } from "../stores/uiStore";
 import { normalizePhone } from "../utils/phone";
 import AppIcon from "@/components/AppIcon.vue";
-import { authHeaders } from "@/utils/managerApi";
+import { authHeaders, storeTokens } from "@/utils/managerApi";
 
 const API = "https://itline-django-9s85.onrender.com/api";
 const router = useRouter();
@@ -192,6 +192,11 @@ async function submitLogin() {
       // u o'quvchilar sahifasiga tushib qolardi
       const payload = buildUserPayload(data);
       localStorage.setItem("user", JSON.stringify(payload));
+      // Backend endi 'tokens: {access, refresh}' qaytaradi — shu
+      // tokenlar bundan keyingi har bir so'rovda 'Authorization:
+      // Bearer' sifatida yuboriladi (X-User-Phone o'rniga, uni
+      // soxtalashtirib bo'lmaydi)
+      storeTokens(data.tokens);
       // Standart parol bilan kirgan admin/ustozga panelda eslatma chiqadi.
       // Buni server aytadi (`used_default_password`) — kod o'zgarsa ham
       // to'g'ri qoladi. Eski backend bu maydonni qaytarmasa, avvalgidek

@@ -1,9 +1,12 @@
 // Menejer / supermenejer paneli uchun API chaqiruvlari.
 //
-// Backend chaqiruvchini 'X-User-Phone' sarlavhasi orqali aniqlaydi —
-// u orqali menejer, supermenejer yoki ustozligi va vakolatlari
-// tekshiriladi. 'X-Device-Id' esa qurilmani belgilaydi: supermenejer
-// panelga qaysi qurilmalar kirayotganini shu orqali ko'radi.
+// Backend chaqiruvchini 'Authorization: Bearer <access_token>' orqali
+// aniqlaydi — token SECRET_KEY bilan imzolangan, uni brauzerda
+// o'zgartirib bo'lmaydi (avvalgi 'X-User-Phone' sarlavhasidan farqli
+// o'laroq, u istalgan qiymatga o'zgartirilishi mumkin edi).
+// 'X-Device-Id' esa qurilmani belgilaydi: supermenejer panelga qaysi
+// qurilmalar kirayotganini shu orqali ko'radi (xavfsizlik uchun emas,
+// faqat statistika uchun).
 import { API_BASE } from "@/config";
 import { clearCache } from "@/utils/cache";
 
@@ -15,6 +18,25 @@ export function currentUser() {
   } catch {
     return null;
   }
+}
+
+// ─────────────────────────────────────────
+// TOKENLAR
+// ─────────────────────────────────────────
+
+export function getAccessToken() {
+  return localStorage.getItem("access_token") || "";
+}
+
+export function getRefreshToken() {
+  return localStorage.getItem("refresh_token") || "";
+}
+
+/** Login javobidagi `tokens: {access, refresh}` ni saqlaydi. */
+export function storeTokens(tokens) {
+  if (!tokens?.access || !tokens?.refresh) return;
+  localStorage.setItem("access_token", tokens.access);
+  localStorage.setItem("refresh_token", tokens.refresh);
 }
 
 /**
@@ -33,6 +55,8 @@ export function currentUser() {
 export function logout() {
   localStorage.removeItem("user");
   localStorage.removeItem("token");
+  localStorage.removeItem("access_token");
+  localStorage.removeItem("refresh_token");
   localStorage.removeItem("used_default_password");
   // Router "oxirgi ochilgan sahifa" ni shu yerdan o'qiydi — tozalanmasa
   // login sahifasi eski sahifaga qaytarib yuborishi mumkin
@@ -58,8 +82,8 @@ export function deviceId() {
 
 export function authHeaders(extra = {}) {
   const h = { "X-Device-Id": deviceId(), ...extra };
-  const phone = currentUser()?.phone;
-  if (phone) h["X-User-Phone"] = phone;
+  const token = getAccessToken();
+  if (token) h["Authorization"] = `Bearer ${token}`;
   return h;
 }
 
@@ -67,9 +91,62 @@ function headers() {
   return authHeaders({ "Content-Type": "application/json" });
 }
 
-/** Javobni {ok, data} ko'rinishida qaytaradi — chaqiruvchi xatoni o'zi ko'rsatadi. */
+// Bir vaqtda bir nechta so'rov 401 qaytarsa ham, refresh so'rovi
+// faqat bitta marta yuborilishi uchun — parallel so'rovlar shu bitta
+// promise'ni kutadi, aks holda refresh token bir necha marta
+// ishlatilib, ROTATE_REFRESH_TOKENS tufayli keyingilari xato beradi.
+let refreshingPromise = null;
+
+async function tryRefreshToken() {
+  if (refreshingPromise) return refreshingPromise;
+
+  refreshingPromise = (async () => {
+    const refresh = getRefreshToken();
+    if (!refresh) return false;
+    try {
+      const res = await fetch(`${API}/token/refresh/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh }),
+      });
+      if (!res.ok) return false;
+      const data = await res.json();
+      if (!data.access) return false;
+      localStorage.setItem("access_token", data.access);
+      if (data.refresh) localStorage.setItem("refresh_token", data.refresh);
+      return true;
+    } catch {
+      return false;
+    }
+  })();
+
+  const result = await refreshingPromise;
+  refreshingPromise = null;
+  return result;
+}
+
+/**
+ * Javobni {ok, data} ko'rinishida qaytaradi — chaqiruvchi xatoni o'zi ko'rsatadi.
+ *
+ * Access token muddati tugagan bo'lsa (401), refresh token bilan
+ * yangisi so'raladi va so'rov bir marta qayta yuboriladi —
+ * foydalanuvchi buni sezmaydi, qayta login qilish shart bo'lmaydi.
+ * Refresh ham muvaffaqiyatsiz bo'lsa (masalan 30 kundan beri
+ * kirilmagan), hisobdan chiqariladi.
+ */
 export async function apiCall(path, options = {}) {
-  const res = await fetch(`${API}${path}`, { headers: headers(), ...options });
+  let res = await fetch(`${API}${path}`, { headers: headers(), ...options });
+
+  if (res.status === 401 && getRefreshToken()) {
+    const refreshed = await tryRefreshToken();
+    if (refreshed) {
+      res = await fetch(`${API}${path}`, { headers: headers(), ...options });
+    } else {
+      logout();
+      return { ok: false, status: 401, data: {} };
+    }
+  }
+
   let data = {};
   try {
     data = await res.json();

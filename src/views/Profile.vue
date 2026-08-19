@@ -5,7 +5,7 @@ import { useTheme } from "../composables/useTheme";
 import SunBoldIcon from "~icons/solar/sun-bold";
 import MoonTwotoneIcon from "~icons/line-md/moon-twotone";
 import AppIcon from "@/components/AppIcon.vue";
-import { logout } from "@/utils/managerApi";
+import { logout, authHeaders } from "@/utils/managerApi";
 
 const API = "https://itline-django-9s85.onrender.com/api";
 const router = useRouter();
@@ -58,10 +58,8 @@ async function saveProfile() {
   try {
     const res = await fetch(`${API}/profile/update/`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
-        id: user.value.id,
-        phone: user.value.phone,
         name: p.name.trim(),
         surname: p.surname.trim(),
       }),
