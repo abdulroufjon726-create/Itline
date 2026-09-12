@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed } from "vue";
+import { API } from "@/config";
 import { useRouter } from "vue-router";
 import { useTheme } from "../composables/useTheme";
 import SunBoldIcon from "~icons/solar/sun-bold";
@@ -7,7 +8,6 @@ import MoonTwotoneIcon from "~icons/line-md/moon-twotone";
 import AppIcon from "@/components/AppIcon.vue";
 import { logout, authHeaders } from "@/utils/managerApi";
 
-const API = "https://itline-django-9s85.onrender.com/api";
 const router = useRouter();
 const { theme, toggleTheme } = useTheme();
 

@@ -183,11 +183,10 @@
 
 <script setup>
 import { ref, onMounted, computed } from "vue";
+import { API } from "@/config";
 import { useRouter } from "vue-router";
 
 const router = useRouter();
-const API = "https://itline-django.onrender.com/api";
-
 const user = JSON.parse(localStorage.getItem("user") || "null");
 if (!user) router.push("/login");
 

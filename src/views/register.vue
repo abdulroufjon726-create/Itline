@@ -1,12 +1,12 @@
 <script setup>
 import { reactive, ref, onMounted, computed } from "vue";
+import { API } from "@/config";
 import { useRouter } from "vue-router";
 import { useUiStore } from "../stores/uiStore";
 import { normalizePhone } from "../utils/phone";
 import AppIcon from "@/components/AppIcon.vue";
 import { authHeaders, storeTokens } from "@/utils/managerApi";
 
-const API = "https://itline-django-9s85.onrender.com/api";
 const router = useRouter();
 const ui = useUiStore();
 

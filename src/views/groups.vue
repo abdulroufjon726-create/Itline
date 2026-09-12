@@ -1,10 +1,10 @@
 <script setup>
 import { ref, onMounted, computed, watch } from "vue";
+import { API } from "@/config";
 import { useRouter } from "vue-router";
 import AppIcon from "@/components/AppIcon.vue";
 import { authHeaders } from "@/utils/managerApi";
 const router = useRouter();
-const API = "https://itline-django-9s85.onrender.com/api";
 const user = JSON.parse(localStorage.getItem("user") || "null");
 
 const hasAccess = ref(false);

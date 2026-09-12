@@ -203,8 +203,9 @@
 import { ref, computed, onMounted } from "vue";
 import axios from "axios";
 import { authHeaders } from "@/utils/managerApi";
+import { API } from "@/config";
 
-const API_BASE = "https://itline-django-9s85.onrender.com/api";
+const API_BASE = API;
 
 const courses = ref([]);
 const groups = ref([]);

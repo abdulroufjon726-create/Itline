@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from "vue";
+import { API } from "@/config";
 import { useRouter } from "vue-router";
 import lessonSoundFile from "/sounds/mixkit-airport-announcement-ding-1569.wav";
 import newsSoundFile from "/sounds/mixkit-elegant-door-announcement-224.wav";
@@ -8,8 +9,6 @@ import telegramQrImg from "../icon/telegram_QR.png";
 import itlineWebQrImg from "../icon/Itline_web-qr.png";
 
 const router = useRouter();
-const API = "https://itline-django-9s85.onrender.com/api";
-
 const user = JSON.parse(localStorage.getItem("user") || "null");
 
 if (!user) {

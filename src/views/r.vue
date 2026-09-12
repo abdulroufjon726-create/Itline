@@ -1,12 +1,11 @@
 <script setup>
 import { ref, computed } from "vue";
+import { API } from "@/config";
 import { useRouter } from "vue-router";
 import { normalizePhone } from "../utils/phone.js";
 import AppIcon from "@/components/AppIcon.vue";
 
 const router = useRouter();
-const API = "https://itline-django-9s85.onrender.com/api";
-
 const ROLE_PASSWORDS = {
   excellence: "excellence2024",
   admin: "excel2024",

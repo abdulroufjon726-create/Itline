@@ -1,11 +1,10 @@
 <script setup>
 import { ref, onMounted, computed } from "vue";
+import { API } from "@/config";
 import { useRouter } from "vue-router";
 import AppIcon from "@/components/AppIcon.vue";
 
 // ─── Constants ───────────────────────────────────────────────
-const API = "https://itline-django-9s85.onrender.com/api";
-
 // ─── Router & Auth ───────────────────────────────────────────
 const router = useRouter();
 

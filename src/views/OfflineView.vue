@@ -29,6 +29,7 @@
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 import AppIcon from "@/components/AppIcon.vue";
+import { API } from "@/config";
 
 const router  = useRouter();
 const checking = ref(false);
@@ -36,7 +37,7 @@ const checking = ref(false);
 async function retry() {
   checking.value = true;
   try {
-    await fetch("https://itline-django-9s85.onrender.com/api/teachers/", {
+    await fetch(`${API}/teachers/`, {
       signal: AbortSignal.timeout(5000),
     });
     // Internet bor — orqaga qayt

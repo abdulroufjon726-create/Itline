@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
+import { API } from "@/config";
 import AppIcon from "@/components/AppIcon.vue";
 import CoinQuickGive from "@/components/CoinQuickGive.vue";
 
@@ -24,7 +25,6 @@ const props = defineProps({
   absentWarn: { type: Number, default: 3 },
 });
 
-const API = "https://itline-django-9s85.onrender.com/api";
 const today = new Date().toISOString().slice(0, 10);
 const thisMonth = new Date().toISOString().slice(0, 7);
 

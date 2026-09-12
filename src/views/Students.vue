@@ -1,5 +1,6 @@
 <script setup>
 import Leaderboard from "@/components/Leaderboard.vue";
+import { API } from "@/config";
 import Magazine from "./Magazine.vue";
 import { ref, onMounted, computed, watch } from "vue";
 import { useRouter } from "vue-router";
@@ -10,7 +11,6 @@ import StudentPayNow from "@/components/StudentPayNow.vue";
 import { authHeaders } from "@/utils/managerApi";
 
 const router = useRouter();
-const API = "https://itline-django-9s85.onrender.com/api";
 const user = JSON.parse(localStorage.getItem("user") || "{}");
 if (!user?.id) router.push("/login");
 

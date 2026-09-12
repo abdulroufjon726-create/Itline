@@ -1,8 +1,7 @@
 <script setup>
 import { ref, onMounted } from "vue";
+import { API } from "@/config";
 import AppIcon from "@/components/AppIcon.vue";
-
-const API = "https://itline-django-9s85.onrender.com/api";
 
 const products = ref([]);
 const loading = ref(true);

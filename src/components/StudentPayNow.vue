@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted } from "vue";
+import { API } from "@/config";
 import AppIcon from "@/components/AppIcon.vue";
 
 /**
@@ -11,8 +12,6 @@ const props = defineProps({
   studentId: { type: [Number, String], required: true },
 });
 const emit = defineEmits(["submitted"]);
-
-const API = "https://itline-django-9s85.onrender.com/api";
 
 const open = ref(false);
 const card = ref({ card_number: "", card_holder: "", note: "" });

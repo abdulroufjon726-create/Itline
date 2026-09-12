@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed, watch } from "vue";
+import { API } from "@/config";
 import { useRouter } from "vue-router";
 import AdminProducts from "./AdminProducts.vue";
 import Adminorders from "./Adminorders.vue";
@@ -18,8 +19,6 @@ import { authHeaders, can, isSuper } from "@/utils/managerApi";
 import { readCache, writeCache } from "@/utils/cache";
 
 const router = useRouter();
-const API = "https://itline-django-9s85.onrender.com/api";
-
 const user = JSON.parse(localStorage.getItem("user") || "null");
 // Menejer ham shu panelga kiradi (u eng yuqori daraja)
 if (!user || !(user.is_excellence || user.role === "manager")) {
