@@ -118,6 +118,13 @@ const routes = [
     meta: { requiresAuth: true, requiresManager: true },
   },
 
+  // Telegram lead xabaridagi "Bazaga qo'shish" tugmasi ochadigan forma
+  {
+    path: "/add-student",
+    component: lazy("AddStudent"),
+    meta: { requiresAuth: true, requiresManager: true },
+  },
+
   // ─── Supermenejer bo'limi ───
   // Menejer panelidan mustaqil: o'z bosh sahifasi, o'z navigatsiyasi.
   // Hammasi `requiresSuper` ostida — oddiy menejer bu yerga kira olmaydi.
@@ -179,7 +186,7 @@ const router = createRouter({
 // `/super` — supermenejerning bosh sahifasi, u login'dan keyin shu yerga
 // tushadi va zakladkadan ham ocha olishi kerak (ichkarisi `requiresSuper`
 // bilan qo'riqlanadi, shuning uchun begona baribir kira olmaydi).
-const ENTRY_PATHS = ["/", "/login", "/offline", "/groups/board", "/super"];
+const ENTRY_PATHS = ["/", "/login", "/offline", "/groups/board", "/super", "/add-student"];
 
 router.beforeEach((to, from) => {
   const user = getUser();
