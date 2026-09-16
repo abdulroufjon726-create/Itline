@@ -4,7 +4,7 @@
 // Production'da env berilmasa — eski qiymat (Render) ishlatiladi.
 export const API_BASE =
   (import.meta.env.VITE_API_BASE as string | undefined) ||
-  'https://itline-django-9s85.onrender.com'
+  'https://davomat-django-zbn4.onrender.com'
 
 // Barcha sahifalar shu yerdan olib foydalanadi — URL hech qaysi
 // komponentda qotirib qo'yilmagan (avval 21 faylda nusxa bo'lgan edi).
