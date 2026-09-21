@@ -8,7 +8,7 @@
         <div class="flex items-center gap-2 mb-2">
           <div class="pl-1">
             <img
-              src="../icon/itline.png"
+              :src="BRAND_LOGO"
               alt=""
               class="w-10 rounded-full animate-spin"
               style="animation-duration: 5s"
@@ -253,6 +253,7 @@ import { ref, computed, onMounted, watch } from "vue";
 import { API_BASE } from "@/config";
 import AppIcon from "@/components/AppIcon.vue";
 import { apiSend, isSuper } from "@/utils/managerApi";
+import { BRAND_LOGO } from "@/brand";
 
 const API = `${API_BASE}/api`;
 

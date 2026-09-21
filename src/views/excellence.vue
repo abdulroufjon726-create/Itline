@@ -7,6 +7,7 @@ import Adminorders from "./Adminorders.vue";
 import Coin_settings from "./coin_settings.vue";
 import DefaultFee from "./DefaultFee.vue";
 import { normalizePhone } from "../utils/phone.js";
+import { BRAND_PAYMENT_REMINDER, BRAND_LOGO, BRAND_PANEL_NAME } from "@/brand";
 import Groups from "./groups.vue";
 import LessonsPlans from "./LessonsPlans.vue";
 import NewsManager from "./NewsManager.vue";
@@ -529,7 +530,7 @@ const unpaidStudentIds = computed(() =>
 function defaultReminderText() {
   return (
     "Assalomu alaykum, {ism}!\n" +
-    "ITLINE o'quv markazida {oy} oyi uchun to'lov muddati yaqinlashmoqda. " +
+    BRAND_PAYMENT_REMINDER("{oy}") +
     "Iltimos, to'lovni o'z vaqtida amalga oshiring. Rahmat! 🙏"
   );
 }
@@ -1357,8 +1358,8 @@ const inputClass = (field) => [
     <div class="flex justify-between items-center mb-6">
       <div class="space-y-2">
         <h1 class="flex gap-3 text-xl sm:text-2xl font-sans">
-          <span><img src="../icon/itline.png" alt="" class="w-10 animate-spin"
-              style="animation-duration: 5s" /></span>Itline Panel
+          <span><img :src="BRAND_LOGO" alt="" class="w-10 animate-spin"
+              style="animation-duration: 5s" /></span>{{ BRAND_PANEL_NAME }}
         </h1>
         <p class="text-gray-400 text-sm mt-0.5">
           Xush kelibsiz, {{ user.name }}!

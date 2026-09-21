@@ -9,9 +9,9 @@
       collapsed ? 'w-[68px]' : 'w-60',
     ]">
       <div class="p-4 flex items-center gap-2.5" :class="collapsed ? 'justify-center' : ''">
-        <img src="../icon/itline.png" alt="" class="w-9 rounded-full shrink-0" />
+        <img :src="BRAND_LOGO" alt="" class="w-9 rounded-full shrink-0" />
         <div v-if="!collapsed" class="min-w-0 flex-1">
-          <p class="text-sm font-semibold text-slate-800 leading-tight">ITLINE</p>
+          <p class="text-sm font-semibold text-slate-800 leading-tight">{{ BRAND_NAME }}</p>
           <p class="text-[11px] text-indigo-500 leading-tight">supermenejer</p>
         </div>
       </div>
@@ -58,7 +58,7 @@
       <!-- Mobil sarlavha -->
       <header class="lg:hidden sticky top-0 z-20 bg-white/80 backdrop-blur border-b border-slate-200">
         <div class="flex items-center gap-2 px-4 py-3">
-          <img src="../icon/itline.png" alt="" class="w-8 rounded-full" />
+          <img :src="BRAND_LOGO" alt="" class="w-8 rounded-full" />
           <div class="flex-1 min-w-0">
             <p class="text-sm font-semibold text-slate-800 leading-tight truncate">
               {{ title }}
@@ -111,6 +111,7 @@ import { useRoute } from "vue-router";
 import AppIcon from "@/components/AppIcon.vue";
 import { useTheme } from "@/composables/useTheme";
 import { logout } from "@/utils/managerApi";
+import { BRAND_NAME, BRAND_LOGO } from "@/brand";
 
 const props = defineProps({
   title: { type: String, default: "Supermenejer" },

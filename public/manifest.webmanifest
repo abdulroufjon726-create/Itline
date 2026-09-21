@@ -1,7 +1,7 @@
 {
-  "name": "ITLINE",
-  "short_name": "ITLINE",
-  "description": "ITLINE o'quv markazi — davomat, to'lov va boshqaruv paneli",
+  "name": "%VITE_BRAND_NAME%",
+  "short_name": "%VITE_BRAND_NAME%",
+  "description": "%VITE_BRAND_NAME% o'quv markazi — davomat, to'lov va boshqaruv paneli",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

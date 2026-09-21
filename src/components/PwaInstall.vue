@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
+import { BRAND_NAME, BRAND_APP_TITLE } from "@/brand";
 
 const router = useRouter();
 const deferredPrompt = ref(null);
@@ -87,9 +88,9 @@ onUnmounted(() => {
       <div v-if="show" class="pwa-overlay" @click.self="later">
         <div class="pwa-card">
           <div class="pwa-icon">
-            <img src="/pwa-192.png" alt="ITLINE" />
+            <img src="/pwa-192.png" :alt="BRAND_NAME" />
           </div>
-          <h3 class="pwa-title">ITLINE ilovasini o'rnating</h3>
+          <h3 class="pwa-title">{{ BRAND_APP_TITLE }}</h3>
           <p class="pwa-text">
             Ilovani asosiy ekranga qo'shing — brauzersiz, xuddi alohida ilova
             kabi tez va qulay oching.

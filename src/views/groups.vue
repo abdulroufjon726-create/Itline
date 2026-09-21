@@ -4,6 +4,7 @@ import { API } from "@/config";
 import { useRouter } from "vue-router";
 import AppIcon from "@/components/AppIcon.vue";
 import { authHeaders } from "@/utils/managerApi";
+import { BRAND_NAME } from "@/brand";
 const router = useRouter();
 const user = JSON.parse(localStorage.getItem("user") || "null");
 
@@ -498,7 +499,7 @@ function openGroupMsg(group) {
     sending: false,
     text:
       "Assalomu alaykum, {ism}!\n" +
-      "ITLINE o'quv markazida oylik to'lov muddati yaqinlashmoqda. " +
+      `${BRAND_NAME} o'quv markazida oylik to'lov muddati yaqinlashmoqda. ` +
       "Iltimos, to'lovni o'z vaqtida amalga oshiring. Rahmat! 🙏",
   };
 }

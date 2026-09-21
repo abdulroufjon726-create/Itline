@@ -1,7 +1,7 @@
 <template>
   <div class="mb-6">
     <div class="flex items-center gap-2 mb-3">
-      <img src="../icon/itline.png" alt="" class="w-10 rounded-full " />
+      <img :src="BRAND_LOGO" alt="" class="w-10 rounded-full " />
       <div class="flex-1 min-w-0">
         <h1 class="text-xl sm:text-2xl text-slate-800 tracking-tight">
           {{ title }}
@@ -39,6 +39,7 @@
 <script setup>
 import { computed } from "vue";
 import AppIcon from "@/components/AppIcon.vue";
+import { BRAND_LOGO } from "@/brand";
 import { can, isSuper } from "@/utils/managerApi";
 
 defineProps({

@@ -5,8 +5,7 @@ import { useRouter } from "vue-router";
 import lessonSoundFile from "/sounds/mixkit-airport-announcement-ding-1569.wav";
 import newsSoundFile from "/sounds/mixkit-elegant-door-announcement-224.wav";
 import AppIcon from "@/components/AppIcon.vue";
-import telegramQrImg from "../icon/telegram_QR.png";
-import itlineWebQrImg from "../icon/Itline_web-qr.png";
+import { BRAND_QR_TELEGRAM as telegramQrImg, BRAND_QR_WEBSITE as itlineWebQrImg } from "@/brand";
 
 const router = useRouter();
 const user = JSON.parse(localStorage.getItem("user") || "null");
