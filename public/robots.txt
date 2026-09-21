@@ -1,0 +1,19 @@
+User-agent: *
+Allow: /
+
+# Kirish/panel sahifalari — qidiruvga kirmasin (parol ortida)
+Disallow: /login
+Disallow: /students
+Disallow: /admin
+Disallow: /attendance
+Disallow: /groups
+Disallow: /finance
+Disallow: /database
+Disallow: /profile
+Disallow: /manager/
+Disallow: /super/
+Disallow: /excellence/
+Disallow: /add-student
+Disallow: /offline
+
+Sitemap: https://crmfr.vercel.app/sitemap.xml
