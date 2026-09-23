@@ -18,7 +18,8 @@
     "pinia": "^2.3.1",
     "tailwindcss": "^4.3.1",
     "vue": "^3.5.27",
-    "vue-router": "^4.2.2"
+    "vue-router": "^4.2.2",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@iconify-json/line-md": "^1.2.16",

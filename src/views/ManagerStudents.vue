@@ -305,20 +305,33 @@
       @click.self="closeImport">
       <div class="bg-white rounded-2xl w-full max-w-3xl shadow-xl my-8">
         <div class="p-5 border-b border-slate-100">
-          <p class="font-semibold text-slate-800">O'quvchilarni jadvaldan yuklash</p>
-          <p class="text-xs text-slate-400 mt-1 leading-relaxed">
-            Excel'dan nusxa olib shu yerga qo'ying yoki CSV faylni tanlang.
-            Birinchi qator — ustun nomlari. Tan olinadigan ustunlar:
-            <span class="font-mono text-slate-500">ism, familiya, telefon, telefon2, ustoz, guruh, holat, izoh</span>
-          </p>
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <p class="font-semibold text-slate-800">O'quvchilarni jadvaldan yuklash</p>
+              <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+                Excel yoki CSV faylni tanlang. Birinchi qator — ustun nomlari.
+                Tan olinadigan ustunlar:
+                <span class="font-mono text-slate-500">ism, familiya, telefon, ota-ona telefoni, ustoz, ustoz telefoni, guruh, guruh vaqti, holat, izoh</span>
+              </p>
+            </div>
+            <button @click="downloadTemplate"
+              class="shrink-0 px-3 py-1.5 rounded-lg border border-indigo-200 text-indigo-600 text-xs hover:bg-indigo-50 transition whitespace-nowrap">
+              ⬇ Namuna jadval
+            </button>
+          </div>
         </div>
 
         <div class="p-5 space-y-4">
           <div class="flex flex-wrap items-center gap-3">
             <label
               class="px-3.5 py-1.5 rounded-lg border border-slate-200 text-slate-500 text-xs hover:bg-slate-50 cursor-pointer transition">
-              CSV fayl tanlash
-              <input type="file" accept=".csv,text/csv,text/plain" class="hidden" @change="onFile" />
+              Excel / CSV fayl tanlash
+              <input type="file" accept=".csv,.xlsx,.xls,text/csv,text/plain" class="hidden" @change="onFile" />
+            </label>
+            <label class="flex items-center gap-1.5 text-xs text-slate-500 cursor-pointer select-none"
+              title="Jadvaldagi ustoz va guruh bazada bo'lmasa — xato o'rniga avtomatik ochiladi">
+              <input type="checkbox" v-model="importAutoCreate" class="accent-indigo-500" />
+              Ustoz/guruh yo'q bo'lsa o'zi ochilsin
             </label>
             <label class="flex items-center gap-2 text-xs text-slate-500">
               Holat (ustun bo'lmasa)
@@ -347,6 +360,10 @@ Ali	Valiyev	901234567	PY-1"
               <span class="text-emerald-600 font-medium">{{ importResult.summary.created }} yaratiladi</span>
               <span class="text-amber-600">{{ importResult.summary.duplicates }} dublikat</span>
               <span class="text-rose-600">{{ importResult.summary.errors }} xato</span>
+              <span v-if="importResult.summary.teachers_created"
+                class="text-indigo-600 font-medium">+{{ importResult.summary.teachers_created }} yangi ustoz</span>
+              <span v-if="importResult.summary.groups_created"
+                class="text-indigo-600 font-medium">+{{ importResult.summary.groups_created }} yangi guruh</span>
               <span class="text-slate-400 ml-auto">jami {{ importResult.summary.total }} qator</span>
             </div>
             <div class="max-h-56 overflow-y-auto divide-y divide-slate-100">
@@ -361,6 +378,7 @@ Ali	Valiyev	901234567	PY-1"
                 </span>
                 <span class="text-slate-600 flex-1 min-w-0">
                   {{ r.name || "—" }}
+                  <span v-if="r.teacher_name" class="text-slate-400">· {{ r.teacher_name }}</span>
                   <span v-if="r.group_name" class="text-slate-400">· {{ r.group_name }}</span>
                   <span v-if="r.reason" class="text-slate-400">— {{ r.reason }}</span>
                 </span>
@@ -440,6 +458,7 @@ const importOpen = ref(false);
 const importText = ref("");
 const importStatus = ref("pending");
 const importGroupId = ref("");
+const importAutoCreate = ref(true);
 const importResult = ref(null);
 const importBusy = ref(false);
 const groups = ref([]);
@@ -600,8 +619,18 @@ const IMPORT_COLUMNS = {
   familiya: "surname", surname: "surname", familya: "surname",
   telefon: "phone", tel: "phone", phone: "phone", raqam: "phone",
   telefon2: "phone2", "qo'shimcha telefon": "phone2", phone2: "phone2",
+  // Ota-ona raqami — o'z alohida ustuni (phone2 ga yoziladi)
+  "ota-ona telefoni": "phone2", "ota ona telefoni": "phone2",
+  "ota-onasi telefoni": "phone2", "ota-onasining telefoni": "phone2",
+  "ota-onasining raqami": "phone2", "ota-ona raqami": "phone2",
+  "parent phone": "phone2", "parents phone": "phone2",
   ustoz: "teacher_name", teacher: "teacher_name", "o'qituvchi": "teacher_name",
-  guruh: "group_name", group: "group_name",
+  "o'qituvchi ismi": "teacher_name", "ustoz ismi": "teacher_name",
+  "ustoz telefoni": "teacher_phone", "teacher phone": "teacher_phone",
+  guruh: "group_name", group: "group_name", "guruh nomi": "group_name",
+  // "Guruh vaqti" — guruh dars soati (9:00, 14:00-16:00 ...)
+  "guruh vaqti": "group_time", "guruh soati": "group_time",
+  "dars vaqti": "group_time", "group time": "group_time",
   holat: "status", status: "status",
   izoh: "note", note: "note",
   etap: "stage", stage: "stage",
@@ -638,16 +667,46 @@ async function loadGroups() {
   }
 }
 
-function onFile(event) {
+/** Excel (.xlsx/.xls) ham, CSV ham — ikkalasi jadval qatorlariga aylanadi. */
+async function onFile(event) {
   const file = event.target.files?.[0];
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    importText.value = String(reader.result || "");
+  try {
+    const XLSX = await import("xlsx");
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: "array" });
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {
+      header: 1,
+      defval: "",
+      raw: false,
+    });
+    importText.value = rows
+      .map((r) => r.join("\t").replace(/\t+$/, ""))
+      .join("\n");
     importResult.value = null;
-  };
-  reader.readAsText(file, "utf-8");
+  } catch (e) {
+    console.error("file read:", e);
+    say("Fayl o'qilmadi — CSV bo'lsa ham yuklanadi");
+  }
   event.target.value = "";
+}
+
+/** Menejer uchun tayyor namuna — haqiqiy .xlsx, ustun nomlari va 2 misol qator. */
+async function downloadTemplate() {
+  try {
+    const XLSX = await import("xlsx");
+    const ws = XLSX.utils.aoa_to_sheet([
+      ["ism", "familiya", "telefon", "ota-ona telefoni", "ustoz", "ustoz telefoni", "guruh", "guruh vaqti", "holat", "izoh"],
+      ["Ali", "Valiyev", "901234567", "935112233", "Sarvar", "901112233", "FR #1 D/CH/J", "14:00", "faol", ""],
+      ["Malika", "Yo'ldosheva", "907654321", "", "Bekzod", "", "FR #2 S/P/SH", "16:00", "kutilmoqda", ""],
+    ]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "O'quvchilar");
+    XLSX.writeFile(wb, "oquvchilar_namuna.xlsx");
+  } catch (e) {
+    console.error("template:", e);
+    say("Namuna yuklab olinmadi");
+  }
 }
 
 /** Excel'dan nusxa (tab bilan) ham, CSV (vergul/nuqta-vergul) ham tushunadi. */
@@ -687,6 +746,7 @@ async function runImport(dryRun) {
     const { ok, data } = await apiSend("/students/import/", "POST", {
       rows,
       dry_run: dryRun,
+      auto_create: importAutoCreate.value,
       default_status: importStatus.value,
       default_group_id: importGroupId.value || null,
     });
@@ -696,8 +756,16 @@ async function runImport(dryRun) {
     }
     importResult.value = data;
     if (!dryRun) {
-      say(`${data.summary.created} ta o'quvchi yuklandi`);
-      await Promise.all([fetchTeachers(), fetchStudents()]);
+      const extra = [
+        data.summary.teachers_created && `${data.summary.teachers_created} ustoz`,
+        data.summary.groups_created && `${data.summary.groups_created} guruh`,
+      ]
+        .filter(Boolean)
+        .join(", ");
+      say(
+        `${data.summary.created} ta o'quvchi yuklandi` + (extra ? ` (+ ${extra} ochildi)` : ""),
+      );
+      await Promise.all([fetchTeachers(), fetchStudents(), loadGroups()]);
       if (!data.summary.errors && !data.summary.duplicates) closeImport();
     }
   } catch (e) {
